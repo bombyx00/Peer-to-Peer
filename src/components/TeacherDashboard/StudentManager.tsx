@@ -25,12 +25,22 @@ export const StudentManager: React.FC = () => {
       const cleanLine = line.trim();
       if (!cleanLine) return;
 
-      // Skip header if matches common fields
-      if (idx === 0 && (cleanLine.includes('학년') || cleanLine.includes('이름') || cleanLine.includes('email') || cleanLine.includes('이메일'))) {
+      const parts = cleanLine.split(',').map((p) => p.trim().replace(/^["']|["']$/g, ''));
+      
+      // Skip header if it contains common words OR if the numeric fields (grade, number) are not numbers
+      const isHeader = idx === 0 && (
+        cleanLine.includes('학년') ||
+        cleanLine.includes('이름') ||
+        cleanLine.includes('email') ||
+        cleanLine.includes('이메일') ||
+        isNaN(Number(parts[0])) ||
+        isNaN(Number(parts[2]))
+      );
+
+      if (isHeader) {
         return;
       }
 
-      const parts = cleanLine.split(',').map((p) => p.trim().replace(/^["']|["']$/g, ''));
       if (parts.length >= 5) {
         parsedStudents.push({
           id: `s-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -72,9 +82,9 @@ export const StudentManager: React.FC = () => {
         // 1. Try decoding with EUC-KR (EUC-KR is standard for Excel CSV in Korea)
         let decodedText = new TextDecoder('euc-kr').decode(arrayBuffer);
         
-        // 2. Check if first line contains strange characters (rough validation for UTF-8 files parsed as EUC-KR)
-        // If it seems broken, fallback to UTF-8
-        if (decodedText.includes('')) {
+        // 2. Check if first line contains replacement characters (rough validation for UTF-8 files parsed as EUC-KR)
+        // If it seems broken (contains Unicode Replacement Character \ufffd), fallback to UTF-8
+        if (decodedText.includes('\ufffd')) {
           decodedText = new TextDecoder('utf-8').decode(arrayBuffer);
         }
         
