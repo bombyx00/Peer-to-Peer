@@ -33,7 +33,7 @@ export const TeacherDashboard: React.FC = () => {
           <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
             관리자 모드
           </span>
-          <h2 style={{ fontSize: '26px', fontWeight: 800, marginTop: '2px', fontFamily: 'var(--font-yeongwol)' }}>교사 관리 대시보드</h2>
+          <h2 style={{ fontSize: '30px', fontWeight: 800, marginTop: '2px', fontFamily: 'var(--font-yeongwol)' }}>교사 관리 대시보드</h2>
         </div>
 
         <button onClick={logout} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -67,7 +67,7 @@ export const TeacherDashboard: React.FC = () => {
                 boxShadow: isActive ? 'var(--glass-shadow)' : 'none',
                 borderRadius: 'var(--radius-md)',
                 fontFamily: 'var(--font-yeongwol)',
-                fontSize: '15px',
+                fontSize: '19px',
                 fontWeight: 'bold',
                 display: 'flex',
                 alignItems: 'center',

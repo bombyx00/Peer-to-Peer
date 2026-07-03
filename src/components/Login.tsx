@@ -169,7 +169,7 @@ export const Login: React.FC = () => {
           <h1 
             onClick={handleTitleClick}
             style={{ 
-              fontSize: '32px', 
+              fontSize: '36px', 
               fontWeight: 800, 
               marginBottom: '8px', 
               letterSpacing: '-0.5px',
@@ -366,7 +366,7 @@ export const Login: React.FC = () => {
           )}
 
           {(role === 'student' || (role === 'teacher' && showDebug)) && (
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px', fontFamily: 'var(--font-yeongwol)', fontSize: '17px', fontWeight: 'bold' }}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px', fontFamily: 'var(--font-yeongwol)', fontSize: '21px', fontWeight: 'bold' }}>
               로그인하기
               <ArrowRight size={16} />
             </button>
