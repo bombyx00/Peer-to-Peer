@@ -445,12 +445,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       targetTeacherEmail = findTeacherEmailByProjectId(projectId);
     }
 
-    const targetStudents = mockStorage.getStudents(targetTeacherEmail);
-    const targetProjects = mockStorage.getProjects(targetTeacherEmail);
-
-    const evaluator = targetStudents.find(s => s.id === evaluatorId);
-    const evaluatee = targetStudents.find(s => s.id === evaluateeId);
-    const projectObj = targetProjects.find(p => p.id === projectId);
+    const evaluator = students.find(s => s.id === evaluatorId);
+    const evaluatee = students.find(s => s.id === evaluateeId);
+    const projectObj = projects.find(p => p.id === projectId);
 
     if (!evaluator || !evaluatee || !projectObj) return;
 
@@ -476,7 +473,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 3. Sync to Supabase DB if configured
     if (cloudConnected.supabase) {
-      submitEvaluationToSupabase({
+      await submitEvaluationToSupabase({
         project_id: projectId,
         evaluator_id: evaluatorId,
         evaluatee_id: evaluateeId,

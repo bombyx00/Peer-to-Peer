@@ -115,16 +115,22 @@ export const StudentEvaluation: React.FC = () => {
       setSubmitting(true);
       
       // Save all drafts to global state
-      targets.forEach((target) => {
+      const submitPromises = targets.map((target) => {
         const targetAnswers = drafts[target.id] || {};
-        submitEvaluation(activeProject.id, me.id, target.id, targetAnswers);
+        return submitEvaluation(activeProject.id, me.id, target.id, targetAnswers);
       });
 
-      setTimeout(() => {
-        setSubmitting(false);
-        alert('모든 상호평가 제출이 성공적으로 완료되었습니다. 수고하셨습니다!');
-        logout();
-      }, 1000);
+      Promise.all(submitPromises)
+        .then(() => {
+          setSubmitting(false);
+          alert('모든 상호평가 제출이 성공적으로 완료되었습니다. 수고하셨습니다!');
+          logout();
+        })
+        .catch((err) => {
+          setSubmitting(false);
+          alert('평가 제출 중 오류가 발생했습니다. 다시 시도해 주세요.');
+          console.error(err);
+        });
     }
   };
 
