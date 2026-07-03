@@ -259,3 +259,48 @@ export const fetchEvaluationsFromSupabase = async (projectId: string, evaluatorI
     return [];
   }
 };
+
+// Supabase DB에 저장된 전체 프로젝트 조회
+export const fetchAllProjectsFromSupabase = async (): Promise<any[]> => {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/projects`, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    return [];
+  } catch (error) {
+    console.error('Supabase 전체 프로젝트 조회 실패:', error);
+    return [];
+  }
+};
+
+// Supabase DB에 저장된 전체 평가 리스트 조회
+export const fetchAllEvaluationsFromSupabase = async (): Promise<any[]> => {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/evaluations`, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    return [];
+  } catch (error) {
+    console.error('Supabase 전체 평가 조회 실패:', error);
+    return [];
+  }
+};
+

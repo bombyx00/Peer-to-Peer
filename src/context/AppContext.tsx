@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { mockStorage } from '../services/mockStorage';
 import type { Student, Project, Group, Question, Evaluation } from '../services/mockStorage';
-import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails, deleteProjectFromSupabase, clearAllCloudData, fetchProjectById, fetchAllStudentsFromSupabase, fetchEvaluationsFromSupabase } from '../services/supabase';
+import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails, deleteProjectFromSupabase, clearAllCloudData, fetchAllStudentsFromSupabase, fetchAllProjectsFromSupabase, fetchAllEvaluationsFromSupabase } from '../services/supabase';
 import { isGoogleSheetsConfigured, appendEvaluationToSheet } from '../services/sheets';
 import { isGeminiConfigured, generateAIFeedback } from '../services/gemini';
 
@@ -116,24 +116,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       let loadedProjects = mockStorage.getProjects(email);
       let loadedEvaluations = mockStorage.getEvaluations(email);
 
-      // If Supabase is configured and we are a student, pull current data from Cloud DB
-      if (user?.role === 'student' && cloudConnected.supabase && user.currentProjectId) {
-        const cloudProj = await fetchProjectById(user.currentProjectId);
-        if (cloudProj) {
-          const parsedProj: Project = {
-            id: cloudProj.id,
-            title: cloudProj.title,
-            description: cloudProj.description,
-            questions: typeof cloudProj.questions === 'string' ? JSON.parse(cloudProj.questions) : cloudProj.questions,
-            selfEvalEnabled: cloudProj.selfEvalEnabled,
-            groups: typeof cloudProj.groups === 'string' ? JSON.parse(cloudProj.groups) : (cloudProj.groups || []),
-            active: cloudProj.active,
-            createdAt: cloudProj.createdAt,
-            accessCode: cloudProj.accessCode,
-          };
-          loadedProjects = [parsedProj];
-          
-          // Fetch all students from Supabase to match other members in groups
+      // If Supabase is configured, pull all active data from Cloud DB
+      if (cloudConnected.supabase) {
+        try {
+          const cloudProjs = await fetchAllProjectsFromSupabase();
+          if (cloudProjs.length > 0) {
+            loadedProjects = cloudProjs.map((cp: any) => ({
+              id: cp.id,
+              title: cp.title,
+              description: cp.description,
+              questions: typeof cp.questions === 'string' ? JSON.parse(cp.questions) : cp.questions,
+              selfEvalEnabled: cp.selfEvalEnabled,
+              groups: typeof cp.groups === 'string' ? JSON.parse(cp.groups) : (cp.groups || []),
+              active: cp.active,
+              createdAt: cp.createdAt,
+              accessCode: cp.accessCode,
+            }));
+          }
+
           const cloudStudents = await fetchAllStudentsFromSupabase();
           if (cloudStudents.length > 0) {
             loadedStudents = cloudStudents.map((cs: any) => ({
@@ -146,21 +146,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }));
           }
 
-          // Fetch evaluations of this evaluator for this project
-          const cloudEvals = await fetchEvaluationsFromSupabase(user.currentProjectId, user.studentInfo?.id || '');
+          const cloudEvals = await fetchAllEvaluationsFromSupabase();
           if (cloudEvals.length > 0) {
             loadedEvaluations = cloudEvals.map((ce: any) => ({
               id: ce.id,
-              projectId: ce.projectId,
-              evaluatorId: ce.evaluatorId,
-              evaluateeId: ce.evaluateeId,
+              projectId: ce.project_id || ce.projectId,
+              evaluatorId: ce.evaluator_id || ce.evaluatorId,
+              evaluateeId: ce.evaluatee_id || ce.evaluateeId,
               answers: typeof ce.answers === 'string' ? JSON.parse(ce.answers) : ce.answers,
-              aiFeedback: ce.aiFeedback,
-              submittedAt: ce.submittedAt,
+              aiFeedback: ce.ai_feedback || ce.aiFeedback,
+              submittedAt: ce.submitted_at || ce.submittedAt,
             }));
           }
-        } else {
-          // If project was deleted from Supabase, force logout the student
+        } catch (err) {
+          console.error('Supabase 데이터 로드 실패:', err);
+        }
+      }
+
+      // If student user logged in, verify project still exists
+      if (user?.role === 'student' && user.currentProjectId) {
+        const projectExists = loadedProjects.some(p => p.id === user.currentProjectId);
+        if (!projectExists) {
           logout();
           return;
         }
