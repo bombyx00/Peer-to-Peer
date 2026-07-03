@@ -20,16 +20,6 @@ export interface Question {
   required: boolean;
 }
 
-export interface Evaluation {
-  id: string;
-  projectId: string;
-  evaluatorId: string;
-  evaluateeId: string;
-  answers: { [questionId: string]: string | number };
-  aiFeedback?: string;
-  submittedAt: string;
-}
-
 export interface Project {
   id: string;
   title: string;
@@ -39,6 +29,17 @@ export interface Project {
   selfEvalEnabled: boolean;
   active: boolean;
   createdAt: string;
+  accessCode: string;
+}
+
+export interface Evaluation {
+  id: string;
+  projectId: string;
+  evaluatorId: string;
+  evaluateeId: string;
+  answers: { [questionId: string]: string | number };
+  aiFeedback?: string;
+  submittedAt: string;
 }
 
 const STORAGE_KEYS = {
@@ -71,6 +72,7 @@ const DEMO_PROJECTS: Project[] = [
     selfEvalEnabled: true,
     active: true,
     createdAt: new Date().toISOString(),
+    accessCode: '123456',
     groups: [
       { id: 'g1', name: '1모둠 (물리 탐구)', memberIds: ['1', '2', '3', '4'] },
       { id: 'g2', name: '2모둠 (화학 탐구)', memberIds: ['5', '6', '7', '8'] },

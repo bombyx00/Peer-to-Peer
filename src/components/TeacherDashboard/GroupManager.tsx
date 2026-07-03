@@ -183,11 +183,17 @@ export const GroupManager: React.FC = () => {
       return;
     }
 
-    // Distribute unassigned students evenly among groups
     const updatedGroups = groups.map(g => ({ ...g, memberIds: [...g.memberIds] }));
-    unassignedStudents.forEach((student, index) => {
-      const groupIndex = index % groups.length;
-      updatedGroups[groupIndex].memberIds.push(student.id);
+    
+    // Distribute unassigned students to the group with the fewest members dynamically
+    unassignedStudents.forEach((student) => {
+      let minGroup = updatedGroups[0];
+      updatedGroups.forEach((g) => {
+        if (g.memberIds.length < minGroup.memberIds.length) {
+          minGroup = g;
+        }
+      });
+      minGroup.memberIds.push(student.id);
     });
 
     setGroups(updatedGroups);

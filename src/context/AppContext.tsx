@@ -8,6 +8,8 @@ import { isGeminiConfigured, generateAIFeedback } from '../services/gemini';
 interface User {
   role: 'teacher' | 'student';
   studentInfo?: Student;
+  teacherInfo?: { email: string; name: string };
+  currentProjectId?: string;
 }
 
 interface AppContextType {
@@ -17,7 +19,14 @@ interface AppContextType {
   evaluations: Evaluation[];
   cloudConnected: { supabase: boolean; sheets: boolean; gemini: boolean };
   loginAsStudent: (email: string) => boolean;
-  loginAsTeacher: () => void;
+  loginAsStudentWithCode: (
+    accessCode: string,
+    grade: string,
+    classNum: string,
+    number: string,
+    name: string
+  ) => { success: boolean; error?: string };
+  loginAsTeacher: (email: string, name: string) => void;
   logout: () => void;
   uploadStudents: (students: Student[]) => void;
   createProject: (
@@ -75,8 +84,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   };
 
-  const loginAsTeacher = () => {
-    const loggedUser: User = { role: 'teacher' };
+  const loginAsStudentWithCode = (
+    accessCode: string,
+    grade: string,
+    classNum: string,
+    number: string,
+    name: string
+  ): { success: boolean; error?: string } => {
+    const project = projects.find((p) => p.active && p.accessCode === accessCode.trim());
+    if (!project) {
+      return { success: false, error: '유효하지 않거나 비활성화된 인증번호입니다.' };
+    }
+
+    const found = students.find(
+      (s) =>
+        s.grade.trim() === grade.trim() &&
+        s.classNum.trim() === classNum.trim() &&
+        s.number.trim() === number.trim() &&
+        s.name.trim() === name.trim()
+    );
+
+    if (found) {
+      const loggedUser: User = {
+        role: 'student',
+        studentInfo: found,
+        currentProjectId: project.id,
+      };
+      setUser(loggedUser);
+      localStorage.setItem('peer_eval_current_user', JSON.stringify(loggedUser));
+      return { success: true };
+    }
+
+    return { success: false, error: '등록된 학생 명단에서 일치하는 학생 정보를 찾을 수 없습니다.' };
+  };
+
+  const loginAsTeacher = (email: string, name: string) => {
+    const loggedUser: User = { role: 'teacher', teacherInfo: { email, name } };
     setUser(loggedUser);
     localStorage.setItem('peer_eval_current_user', JSON.stringify(loggedUser));
   };
@@ -102,6 +145,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     questions: Question[],
     selfEvalEnabled: boolean
   ) => {
+    const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
     const newProject: Project = {
       id: `p-${Date.now()}`,
       title,
@@ -111,6 +155,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       groups: [],
       active: true,
       createdAt: new Date().toISOString(),
+      accessCode,
     };
     const updated = [newProject, ...projects];
     setProjects(updated);
@@ -221,6 +266,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         evaluations,
         cloudConnected,
         loginAsStudent,
+        loginAsStudentWithCode,
         loginAsTeacher,
         logout,
         uploadStudents,

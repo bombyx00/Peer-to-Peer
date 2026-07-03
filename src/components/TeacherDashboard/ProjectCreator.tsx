@@ -3,6 +3,15 @@ import { useApp } from '../../context/AppContext';
 import type { Question } from '../../services/mockStorage';
 import { Plus, Trash2, Calendar, FileText, Settings } from 'lucide-react';
 
+const getDefaultPlaceholder = (type: 'rating' | 'slider' | 'text') => {
+  const defaultTexts = {
+    rating: '이 모둠원은 역할을 책임감 있게 수행했습니까?',
+    slider: '이 모둠원의 전반적인 기여도는 몇 %입니까?',
+    text: '이 모둠원의 가장 뛰어났던 점이나 보완할 점을 자유롭게 기술해주세요.',
+  };
+  return defaultTexts[type];
+};
+
 export const ProjectCreator: React.FC = () => {
   const { projects, createProject, deleteProject, toggleProjectStatus } = useApp();
   const [title, setTitle] = useState('');
@@ -10,20 +19,15 @@ export const ProjectCreator: React.FC = () => {
   const [selfEvalEnabled, setSelfEvalEnabled] = useState(true);
   
   const [questions, setQuestions] = useState<Question[]>([
-    { id: 'q-1', type: 'rating', questionText: '이 모둠원은 역할을 책임감 있게 수행했습니까?', required: true },
-    { id: 'q-2', type: 'slider', questionText: '이 모둠원의 전반적인 기여도는 몇 %입니까?', required: true },
+    { id: 'q-1', type: 'rating', questionText: '', required: true },
+    { id: 'q-2', type: 'slider', questionText: '', required: true },
   ]);
 
   const addQuestion = (type: 'rating' | 'slider' | 'text') => {
-    const defaultTexts = {
-      rating: '새로운 평가 문항 (별점)',
-      slider: '새로운 평가 문항 (기여도 슬라이더)',
-      text: '새로운 평가 문항 (주관식 의견)',
-    };
     const newQuestion: Question = {
       id: `q-${Date.now()}`,
       type,
-      questionText: defaultTexts[type],
+      questionText: '',
       required: true,
     };
     setQuestions([...questions, newQuestion]);
@@ -52,12 +56,19 @@ export const ProjectCreator: React.FC = () => {
       return;
     }
 
-    createProject(title, description, questions, selfEvalEnabled);
+    const finalQuestions = questions.map((q) => {
+      if (!q.questionText.trim()) {
+        return { ...q, questionText: getDefaultPlaceholder(q.type) };
+      }
+      return q;
+    });
+
+    createProject(title, description, finalQuestions, selfEvalEnabled);
     setTitle('');
     setDescription('');
     setQuestions([
-      { id: 'q-1', type: 'rating', questionText: '이 모둠원은 역할을 책임감 있게 수행했습니까?', required: true },
-      { id: 'q-2', type: 'slider', questionText: '이 모둠원의 전반적인 기여도는 몇 %입니까?', required: true },
+      { id: 'q-1', type: 'rating', questionText: '', required: true },
+      { id: 'q-2', type: 'slider', questionText: '', required: true },
     ]);
     alert('새 프로젝트가 생성되었습니다. 모둠 배정 탭으로 가셔서 모둠을 구성해주세요.');
   };
@@ -177,7 +188,7 @@ export const ProjectCreator: React.FC = () => {
                     className="glass-input"
                     value={q.questionText}
                     onChange={(e) => updateQuestionText(q.id, e.target.value)}
-                    placeholder="질문 내용을 작성하세요."
+                    placeholder={getDefaultPlaceholder(q.type)}
                   />
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

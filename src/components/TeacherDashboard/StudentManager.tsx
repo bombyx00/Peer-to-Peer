@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { Student } from '../../services/mockStorage';
-import { Upload, Trash2, UserPlus, Check, Download } from 'lucide-react';
+import { Upload, Trash2, UserPlus, Check, Download, FileSpreadsheet } from 'lucide-react';
 
 export const StudentManager: React.FC = () => {
   const { students, uploadStudents } = useApp();
@@ -14,48 +14,85 @@ export const StudentManager: React.FC = () => {
     email: '',
   });
   const [successMsg, setSuccessMsg] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Simple CSV parser
-  const handleCsvUpload = (e: React.FormEvent) => {
+  // Helper to parse CSV strings
+  const parseCsvString = (text: string) => {
+    const lines = text.split(/\r?\n/);
+    const parsedStudents: Student[] = [];
+
+    lines.forEach((line, idx) => {
+      const cleanLine = line.trim();
+      if (!cleanLine) return;
+
+      // Skip header if matches common fields
+      if (idx === 0 && (cleanLine.includes('학년') || cleanLine.includes('이름') || cleanLine.includes('email') || cleanLine.includes('이메일'))) {
+        return;
+      }
+
+      const parts = cleanLine.split(',').map((p) => p.trim().replace(/^["']|["']$/g, ''));
+      if (parts.length >= 5) {
+        parsedStudents.push({
+          id: `s-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          grade: parts[0],
+          classNum: parts[1],
+          number: parts[2],
+          name: parts[3],
+          email: parts[4],
+        });
+      }
+    });
+
+    if (parsedStudents.length > 0) {
+      uploadStudents(parsedStudents);
+      setCsvText('');
+      showSuccess(`성공적으로 ${parsedStudents.length}명의 학생을 등록했습니다.`);
+    } else {
+      alert('올바른 CSV 형식이 아닙니다. (예시: 학년,반,번호,이름,이메일)');
+    }
+  };
+
+  // Textarea submit
+  const handleCsvTextSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!csvText.trim()) return;
+    parseCsvString(csvText);
+  };
 
-    try {
-      const lines = csvText.split('\n');
-      const parsedStudents: Student[] = [];
+  // File Upload change handler (Encoding detection)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      lines.forEach((line, idx) => {
-        const cleanLine = line.trim();
-        if (!cleanLine) return;
-
-        // Skip header if matches common fields
-        if (idx === 0 && (cleanLine.includes('학년') || cleanLine.includes('이름') || cleanLine.includes('email'))) {
-          return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+        
+        // 1. Try decoding with EUC-KR (EUC-KR is standard for Excel CSV in Korea)
+        let decodedText = new TextDecoder('euc-kr').decode(arrayBuffer);
+        
+        // 2. Check if first line contains strange characters (rough validation for UTF-8 files parsed as EUC-KR)
+        // If it seems broken, fallback to UTF-8
+        if (decodedText.includes('')) {
+          decodedText = new TextDecoder('utf-8').decode(arrayBuffer);
         }
-
-        const parts = cleanLine.split(',').map((p) => p.trim());
-        if (parts.length >= 5) {
-          parsedStudents.push({
-            id: `s-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            grade: parts[0],
-            classNum: parts[1],
-            number: parts[2],
-            name: parts[3],
-            email: parts[4],
-          });
-        }
-      });
-
-      if (parsedStudents.length > 0) {
-        uploadStudents(parsedStudents);
-        setCsvText('');
-        showSuccess(`성공적으로 ${parsedStudents.length}명의 학생을 등록했습니다.`);
-      } else {
-        alert('올바른 CSV 형식이 아닙니다. (예시: 학년,반,번호,이름,이메일)');
+        
+        parseCsvString(decodedText);
+      } catch (err) {
+        alert('파일을 읽는 중 오류가 발생했습니다.');
       }
-    } catch (err) {
-      alert('CSV 파싱 중 오류가 발생했습니다.');
+    };
+    reader.readAsArrayBuffer(file);
+    
+    // Reset file input value so same file can be uploaded again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
   };
 
   const handleSingleSubmit = (e: React.FormEvent) => {
@@ -88,10 +125,12 @@ export const StudentManager: React.FC = () => {
   };
 
   const downloadTemplate = () => {
-    const csvContent = "data:text/csv;charset=utf-8,학년,반,번호,이름,이메일\n3,1,1,김철수,chulsoo@gmail.com\n3,1,2,이영희,younghee@gmail.com";
-    const encodedUri = encodeURI(csvContent);
+    // UTF-8 with BOM (\uFEFF) to make sure Excel opens it perfectly without broken Korean characters
+    const csvContent = "\uFEFF학년,반,번호,이름,이메일\n3,1,1,김철수,chulsoo@gmail.com\n3,1,2,이영희,younghee@gmail.com";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", url);
     link.setAttribute("download", "student_template.csv");
     document.body.appendChild(link);
     link.click();
@@ -111,68 +150,116 @@ export const StudentManager: React.FC = () => {
               양식 다운로드
             </button>
           </div>
-          <form onSubmit={handleCsvUpload}>
-            <div style={{ marginBottom: '12px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                형식: 학년, 반, 번호, 이름, 구글이메일 (한 줄에 한 명씩 쉼표로 구분)
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Real File Input Hidden */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".csv"
+              style={{ display: 'none' }}
+            />
+            
+            <button 
+              type="button" 
+              onClick={triggerFileUpload} 
+              className="btn btn-primary" 
+              style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px', padding: '14px 24px' }}
+            >
+              <FileSpreadsheet size={18} />
+              엑셀 CSV 파일 업로드하기
+            </button>
+
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0' }}>
+              <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)', width: '100%' }} />
+              <span style={{ position: 'absolute', background: 'var(--glass-bg)', padding: '0 12px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                또는 직접 텍스트 붙여넣기
               </span>
             </div>
-            <textarea
-              className="glass-input"
-              style={{ minHeight: '120px', resize: 'vertical', fontFamily: 'monospace', fontSize: '13px', marginBottom: '16px' }}
-              placeholder="예시:&#10;3,1,1,김철수,chulsoo@gmail.com&#10;3,1,2,이영희,younghee@gmail.com"
-              value={csvText}
-              onChange={(e) => setCsvText(e.target.value)}
-            />
-            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-              <Upload size={16} />
-              일괄 등록하기
-            </button>
-          </form>
+
+            <form onSubmit={handleCsvTextSubmit}>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  형식: 학년, 반, 번호, 이름, 이메일 (한 줄에 한 명씩 쉼표 구분)
+                </span>
+              </div>
+              <textarea
+                className="glass-input"
+                style={{ minHeight: '100px', resize: 'vertical', fontFamily: 'monospace', fontSize: '12px', marginBottom: '12px' }}
+                placeholder="예시:&#10;3,1,1,김철수,chulsoo@gmail.com&#10;3,1,2,이영희,younghee@gmail.com"
+                value={csvText}
+                onChange={(e) => setCsvText(e.target.value)}
+              />
+              <button type="submit" className="btn btn-secondary" style={{ width: '100%' }}>
+                <Upload size={16} />
+                텍스트 일괄 등록
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* Single Add */}
         <div className="glass-panel" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>개별 학생 등록</h3>
-          <form onSubmit={handleSingleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+          <form onSubmit={handleSingleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                학년 / 반 / 번호 입력
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                <input
+                  type="number"
+                  placeholder="학년"
+                  className="glass-input"
+                  value={singleStudent.grade}
+                  onChange={(e) => setSingleStudent({ ...singleStudent, grade: e.target.value })}
+                />
+                <input
+                  type="number"
+                  placeholder="반"
+                  className="glass-input"
+                  value={singleStudent.classNum}
+                  onChange={(e) => setSingleStudent({ ...singleStudent, classNum: e.target.value })}
+                />
+                <input
+                  type="number"
+                  placeholder="번호"
+                  className="glass-input"
+                  value={singleStudent.number}
+                  onChange={(e) => setSingleStudent({ ...singleStudent, number: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                이름
+              </label>
               <input
-                type="number"
-                placeholder="학년 (예: 3)"
+                type="text"
+                placeholder="이름"
                 className="glass-input"
-                value={singleStudent.grade}
-                onChange={(e) => setSingleStudent({ ...singleStudent, grade: e.target.value })}
-              />
-              <input
-                type="number"
-                placeholder="반 (예: 1)"
-                className="glass-input"
-                value={singleStudent.classNum}
-                onChange={(e) => setSingleStudent({ ...singleStudent, classNum: e.target.value })}
-              />
-              <input
-                type="number"
-                placeholder="번호 (예: 1)"
-                className="glass-input"
-                value={singleStudent.number}
-                onChange={(e) => setSingleStudent({ ...singleStudent, number: e.target.value })}
+                value={singleStudent.name}
+                onChange={(e) => setSingleStudent({ ...singleStudent, name: e.target.value })}
               />
             </div>
-            <input
-              type="text"
-              placeholder="이름"
-              className="glass-input"
-              value={singleStudent.name}
-              onChange={(e) => setSingleStudent({ ...singleStudent, name: e.target.value })}
-            />
-            <input
-              type="email"
-              placeholder="구글 이메일"
-              className="glass-input"
-              value={singleStudent.email}
-              onChange={(e) => setSingleStudent({ ...singleStudent, email: e.target.value })}
-            />
-            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                구글 이메일 주소
+              </label>
+              <input
+                type="email"
+                placeholder="teacher-approved-email@gmail.com"
+                className="glass-input"
+                value={singleStudent.email}
+                onChange={(e) => setSingleStudent({ ...singleStudent, email: e.target.value })}
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '4px' }}>
               <UserPlus size={16} />
               학생 추가
             </button>
@@ -181,7 +268,7 @@ export const StudentManager: React.FC = () => {
       </div>
 
       {/* Right side: Student list */}
-      <div className="glass-panel" style={{ padding: '24px', maxHeight: '590px', display: 'flex', flexDirection: 'column' }}>
+      <div className="glass-panel" style={{ padding: '24px', maxHeight: '660px', display: 'flex', flexDirection: 'column' }}>
         <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
           학생 목록 ({students.length}명)
         </h3>

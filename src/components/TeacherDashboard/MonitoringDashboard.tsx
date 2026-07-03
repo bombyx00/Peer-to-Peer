@@ -5,6 +5,7 @@ import { Download, CheckCircle, XCircle, BarChart2 } from 'lucide-react';
 export const MonitoringDashboard: React.FC = () => {
   const { students, projects, evaluations, resetAll } = useApp();
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [showQRModal, setShowQRModal] = useState(false);
 
   const currentProject = projects.find((p) => p.id === selectedProjectId) || projects[0];
 
@@ -14,8 +15,12 @@ export const MonitoringDashboard: React.FC = () => {
     return currentProject.groups.find((g) => g.memberIds.includes(studentId));
   };
 
-  // Check if evaluator evaluated evaluatee
+  // Check if evaluator evaluated evaluatee (Check if they are in the same group currently)
   const hasEvaluated = (evaluatorId: string, evaluateeId: string) => {
+    const group1 = getGroupOfStudent(evaluatorId);
+    const group2 = getGroupOfStudent(evaluateeId);
+    if (!group1 || !group2 || group1.id !== group2.id) return false;
+
     return evaluations.some(
       (e) =>
         e.projectId === currentProject?.id &&
@@ -79,7 +84,14 @@ export const MonitoringDashboard: React.FC = () => {
         const evaluator = students.find((s) => s.id === evalItem.evaluatorId);
         const evaluatee = students.find((s) => s.id === evalItem.evaluateeId);
 
+        // Only export evaluations between students currently in the same group to maintain consistency
         if (evaluator && evaluatee) {
+          const evalGroup = getGroupOfStudent(evaluator.id);
+          const evaleeGroup = getGroupOfStudent(evaluatee.id);
+          if (!evalGroup || !evaleeGroup || evalGroup.id !== evaleeGroup.id) {
+            return; // Skip mismatching group records
+          }
+
           const answers = currentProject.questions.map((q) => {
             const val = evalItem.answers[q.id];
             return val !== undefined ? `"${String(val).replace(/"/g, '""')}"` : '';
@@ -104,6 +116,7 @@ export const MonitoringDashboard: React.FC = () => {
         }
       });
 
+    // UTF-8 with BOM (\uFEFF) to make sure Excel opens the result cleanly without breaking Korean text
     const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + csvRows.join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
@@ -125,11 +138,12 @@ export const MonitoringDashboard: React.FC = () => {
   }
 
   const projectToMonitor = currentProject || projects[0];
+  const studentAccessUrl = `${window.location.origin}?code=${projectToMonitor?.accessCode || ''}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
-      {/* Selector & Stats Card */}
+      {/* Selector & Actions */}
       <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -163,8 +177,69 @@ export const MonitoringDashboard: React.FC = () => {
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Progress Metrics */}
+      {/* QR Code and Student Access Guidance Card */}
+      {projectToMonitor && (
+        <div className="glass-panel" style={{
+          padding: '24px',
+          display: 'flex',
+          gap: '24px',
+          alignItems: 'center',
+          background: 'var(--primary-light)',
+          border: '1px solid rgba(79, 70, 229, 0.15)',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ flex: 1, minWidth: '280px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 700, letterSpacing: '1px' }}>STUDENT ACCESS INFO</span>
+            <h3 style={{ fontSize: '20px', fontWeight: 800, marginTop: '4px', marginBottom: '8px' }}>학생 접속 안내</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
+              선생님이 이 화면을 빔 프로젝터나 대형 모니터에 띄워주시면, 학생들이 **QR 코드**를 스캔하거나 아래 **인증번호**를 사용해 손쉽게 자기 학적 정보를 넣고 접속할 수 있습니다.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <div style={{ background: 'white', padding: '8px 16px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>평가 인증번호</span>
+                <span style={{ fontSize: '22px', fontWeight: 800, color: 'var(--primary)', letterSpacing: '1px', lineHeight: '1.2' }}>
+                  {projectToMonitor.accessCode}
+                </span>
+              </div>
+              <button 
+                onClick={() => setShowQRModal(true)} 
+                className="btn btn-secondary" 
+                style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}
+              >
+                QR코드 크게 띄우기
+              </button>
+            </div>
+          </div>
+          
+          <div 
+            onClick={() => setShowQRModal(true)} 
+            style={{ 
+              background: 'white', 
+              padding: '12px', 
+              borderRadius: 'var(--radius-md)', 
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)', 
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(studentAccessUrl)}`} 
+              alt="QR Code" 
+              style={{ width: '100px', height: '100px', display: 'block' }}
+            />
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>클릭 시 크게 보기</span>
+          </div>
+        </div>
+      )}
+
+      {/* Progress Metrics */}
+      <div className="glass-panel" style={{ padding: '24px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>평가 제출 현황 통계</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
           <div style={{ background: 'white', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(0,0,0,0.03)' }}>
             <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px' }}>전체 대상 인원</div>
@@ -296,6 +371,16 @@ export const MonitoringDashboard: React.FC = () => {
                   .map((evalItem) => {
                     const evaluator = students.find((s) => s.id === evalItem.evaluatorId);
                     const evaluatee = students.find((s) => s.id === evalItem.evaluateeId);
+                    
+                    // Only show evaluations for students currently in the same group
+                    if (evaluator && evaluatee) {
+                      const evalGroup = getGroupOfStudent(evaluator.id);
+                      const evaleeGroup = getGroupOfStudent(evaluatee.id);
+                      if (!evalGroup || !evaleeGroup || evalGroup.id !== evaleeGroup.id) {
+                        return null; // Skip mismatching group feedback
+                      }
+                    }
+
                     return (
                       <tr key={evalItem.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
                         <td style={{ padding: '12px 8px', fontWeight: 600 }}>
@@ -318,6 +403,70 @@ export const MonitoringDashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* QR Modal */}
+      {showQRModal && projectToMonitor && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }} onClick={() => setShowQRModal(false)}>
+          <div className="glass-panel" style={{
+            maxWidth: '450px',
+            width: '100%',
+            padding: '32px',
+            background: 'white',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px',
+            animation: 'modal-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div>
+              <h3 style={{ fontSize: '20px', fontWeight: 800 }}>학생 접속 QR 코드</h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                모바일 기기 카메라로 스캔하면 인증번호가 자동 입력됩니다.
+              </p>
+            </div>
+            
+            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(0,0,0,0.03)' }}>
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(studentAccessUrl)}`} 
+                alt="Large QR Code" 
+                style={{ width: '250px', height: '250px', display: 'block' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>평가 인증번호</span>
+              <span style={{ fontSize: '32px', fontWeight: 900, color: 'var(--primary)', letterSpacing: '2px', lineHeight: '1' }}>
+                {projectToMonitor.accessCode}
+              </span>
+            </div>
+
+            <button onClick={() => setShowQRModal(false)} className="btn btn-primary" style={{ width: '100%' }}>
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes modal-pop {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
 
     </div>
   );
