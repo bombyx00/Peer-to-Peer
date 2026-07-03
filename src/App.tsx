@@ -123,23 +123,24 @@ const MainApp: React.FC = () => {
       <footer style={{
         padding: '24px 0',
         textAlign: 'center',
-        fontSize: '11px',
+        fontSize: '12px',
         color: 'var(--text-muted)',
         marginTop: 'auto',
-        borderTop: '1px solid rgba(0,0,0,0.03)'
+        borderTop: '1px solid rgba(0,0,0,0.03)',
+        fontFamily: 'var(--font-joseon)'
       }}>
         <div>© 2026 서울선사초등학교 교사 조근영. All Rights Reserved.</div>
         <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center' }}>
           <button 
             onClick={() => setShowModal('terms')} 
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline' }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', fontFamily: 'var(--font-joseon)' }}
           >
             이용약관
           </button>
           <span>|</span>
           <button 
             onClick={() => setShowModal('privacy')} 
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline' }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', fontFamily: 'var(--font-joseon)' }}
           >
             개인정보처리방침
           </button>

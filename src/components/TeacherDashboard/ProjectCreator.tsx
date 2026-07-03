@@ -128,7 +128,7 @@ export const ProjectCreator: React.FC = () => {
     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px', alignItems: 'start' }}>
       {/* Left side: Create form */}
       <div className="glass-panel" style={{ padding: '28px' }}>
-        <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-yeongwol)' }}>
           <Settings size={20} color="var(--primary)" />
           {editingProjectId ? '프로젝트 정보 수정' : '새 상호평가 프로젝트 설계'}
         </h3>
