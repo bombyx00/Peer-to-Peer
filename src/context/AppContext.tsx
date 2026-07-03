@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { mockStorage } from '../services/mockStorage';
 import type { Student, Project, Group, Question, Evaluation } from '../services/mockStorage';
-import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails, deleteProjectFromSupabase } from '../services/supabase';
+import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails, deleteProjectFromSupabase, clearAllCloudData } from '../services/supabase';
 import { isGoogleSheetsConfigured, appendEvaluationToSheet } from '../services/sheets';
 import { isGeminiConfigured, generateAIFeedback } from '../services/gemini';
 
@@ -434,6 +434,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setStudents(mockStorage.getStudents(email));
     setProjects(mockStorage.getProjects(email));
     setEvaluations([]);
+
+    // Cloud Sync: Wipe all cloud DB data if configured
+    if (cloudConnected.supabase) {
+      clearAllCloudData();
+    }
+
     logout();
   };
 

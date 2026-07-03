@@ -151,3 +151,41 @@ export const deleteProjectFromSupabase = async (projectId: string): Promise<bool
     return false;
   }
 };
+
+// Supabase DB의 모든 프로젝트, 학생, 평가 데이터를 청소 (DELETE)
+export const clearAllCloudData = async (): Promise<boolean> => {
+  if (!isSupabaseConfigured()) return false;
+  try {
+    // 1. projects 테이블 비우기 (PostgREST API에서 전체 삭제를 위해 조건으로 'id=not.is.null' 사용)
+    const resProj = await fetch(`${supabaseUrl}/rest/v1/projects?id=not.is.null`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`
+      }
+    });
+
+    // 2. students 테이블 비우기
+    const resStud = await fetch(`${supabaseUrl}/rest/v1/students?id=not.is.null`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`
+      }
+    });
+
+    // 3. evaluations 테이블 비우기
+    const resEval = await fetch(`${supabaseUrl}/rest/v1/evaluations?id=not.is.null`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`
+      }
+    });
+
+    return resProj.ok && resStud.ok && resEval.ok;
+  } catch (error) {
+    console.error('Supabase 클라우드 전체 초기화 실패:', error);
+    return false;
+  }
+};
