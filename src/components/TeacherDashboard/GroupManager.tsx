@@ -30,7 +30,7 @@ const DraggableStudent: React.FC<{ student: Student }> = ({ student }) => {
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="draggable-item">
-      <span>{student.grade}-{student.classNum}-{student.number} {student.name}</span>
+      <span style={{ fontFamily: 'var(--font-joseon)', fontSize: '14px', fontWeight: 600 }}>{student.grade}-{student.classNum}-{student.number} {student.name}</span>
     </div>
   );
 };
@@ -61,8 +61,8 @@ const DroppableArea: React.FC<{
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-        <h4 style={{ fontSize: '14px', fontWeight: 700 }}>{title}</h4>
-        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(0,0,0,0.05)', fontWeight: 600 }}>
+        <h4 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-yeongwol)' }}>{title}</h4>
+        <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(0,0,0,0.05)', fontWeight: 600, fontFamily: 'var(--font-joseon)' }}>
           {count}명
         </span>
       </div>
@@ -261,12 +261,12 @@ export const GroupManager: React.FC = () => {
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
             />
-            <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+            <button type="submit" className="btn btn-primary" style={{ padding: '8px 18px', fontSize: '17px', fontFamily: 'var(--font-yeongwol)', fontWeight: 'bold' }}>
               <Plus size={16} /> 모둠 추가
             </button>
           </form>
 
-          <button onClick={autoAllocate} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '13px', background: 'var(--primary-light)', color: 'var(--primary)', border: 'none' }}>
+          <button onClick={autoAllocate} className="btn btn-secondary" style={{ padding: '8px 18px', fontSize: '17px', fontFamily: 'var(--font-yeongwol)', fontWeight: 'bold', background: 'var(--primary-light)', color: 'var(--primary)', border: 'none' }}>
             <ArrowRightLeft size={14} /> 자동 균등 배정
           </button>
 
@@ -274,8 +274,10 @@ export const GroupManager: React.FC = () => {
             onClick={resetAllocations}
             className="btn btn-secondary"
             style={{
-              padding: '8px 16px',
-              fontSize: '13px',
+              padding: '8px 18px',
+              fontSize: '17px',
+              fontFamily: 'var(--font-yeongwol)',
+              fontWeight: 'bold',
               border: '1px solid rgba(239, 68, 68, 0.2)',
               color: 'var(--danger)',
               background: 'transparent',
@@ -362,10 +364,11 @@ export const GroupManager: React.FC = () => {
                                 border: 'none',
                                 background: 'rgba(0,0,0,0.04)',
                                 borderRadius: '4px',
-                                fontSize: '10px',
+                                fontSize: '11px',
                                 padding: '2px 6px',
                                 cursor: 'pointer',
-                                zIndex: 10
+                                zIndex: 10,
+                                fontFamily: 'var(--font-joseon)'
                               }}
                             >
                               빼기
