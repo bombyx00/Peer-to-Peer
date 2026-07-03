@@ -102,46 +102,55 @@ const DEMO_PROJECTS: Project[] = [
 ];
 
 export const mockStorage = {
-  getStudents(): Student[] {
-    const data = localStorage.getItem(STORAGE_KEYS.STUDENTS);
+  getKey(baseKey: string, email?: string): string {
+    return email ? `${baseKey}_${email.trim().toLowerCase()}` : baseKey;
+  },
+
+  getStudents(email?: string): Student[] {
+    const key = this.getKey(STORAGE_KEYS.STUDENTS, email);
+    const data = localStorage.getItem(key);
     if (!data) {
-      localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(DEMO_STUDENTS));
+      localStorage.setItem(key, JSON.stringify(DEMO_STUDENTS));
       return DEMO_STUDENTS;
     }
     return JSON.parse(data);
   },
 
-  saveStudents(students: Student[]): void {
-    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+  saveStudents(students: Student[], email?: string): void {
+    const key = this.getKey(STORAGE_KEYS.STUDENTS, email);
+    localStorage.setItem(key, JSON.stringify(students));
   },
 
-  getProjects(): Project[] {
-    const data = localStorage.getItem(STORAGE_KEYS.PROJECTS);
+  getProjects(email?: string): Project[] {
+    const key = this.getKey(STORAGE_KEYS.PROJECTS, email);
+    const data = localStorage.getItem(key);
     if (!data) {
-      localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(DEMO_PROJECTS));
+      localStorage.setItem(key, JSON.stringify(DEMO_PROJECTS));
       return DEMO_PROJECTS;
     }
     return JSON.parse(data);
   },
 
-  saveProjects(projects: Project[]): void {
-    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects));
+  saveProjects(projects: Project[], email?: string): void {
+    const key = this.getKey(STORAGE_KEYS.PROJECTS, email);
+    localStorage.setItem(key, JSON.stringify(projects));
   },
 
-  getEvaluations(): Evaluation[] {
-    const data = localStorage.getItem(STORAGE_KEYS.EVALUATIONS);
+  getEvaluations(email?: string): Evaluation[] {
+    const key = this.getKey(STORAGE_KEYS.EVALUATIONS, email);
+    const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : [];
   },
 
-  saveEvaluation(evaluation: Omit<Evaluation, 'id' | 'submittedAt'>): void {
-    const evals = this.getEvaluations();
+  saveEvaluation(evaluation: Omit<Evaluation, 'id' | 'submittedAt'>, email?: string): void {
+    const key = this.getKey(STORAGE_KEYS.EVALUATIONS, email);
+    const evals = this.getEvaluations(email);
     const newEval: Evaluation = {
       ...evaluation,
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       submittedAt: new Date().toISOString(),
     };
     
-    // 중복 평가가 있다면 덮어쓰기, 없다면 추가
     const existingIndex = evals.findIndex(
       (e) =>
         e.projectId === evaluation.projectId &&
@@ -154,12 +163,16 @@ export const mockStorage = {
     } else {
       evals.push(newEval);
     }
-    localStorage.setItem(STORAGE_KEYS.EVALUATIONS, JSON.stringify(evals));
+    localStorage.setItem(key, JSON.stringify(evals));
   },
 
-  resetAllData(): void {
-    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(DEMO_STUDENTS));
-    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(DEMO_PROJECTS));
-    localStorage.removeItem(STORAGE_KEYS.EVALUATIONS);
+  resetAllData(email?: string): void {
+    const keyStudents = this.getKey(STORAGE_KEYS.STUDENTS, email);
+    const keyProjects = this.getKey(STORAGE_KEYS.PROJECTS, email);
+    const keyEvals = this.getKey(STORAGE_KEYS.EVALUATIONS, email);
+
+    localStorage.setItem(keyStudents, JSON.stringify(DEMO_STUDENTS));
+    localStorage.setItem(keyProjects, JSON.stringify(DEMO_PROJECTS));
+    localStorage.removeItem(keyEvals);
   },
 };

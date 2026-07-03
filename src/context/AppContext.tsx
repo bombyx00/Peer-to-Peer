@@ -59,19 +59,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [cloudConnected, setCloudConnected] = useState({ supabase: false, sheets: false, gemini: false });
 
-  // Load initial data and check connection
+  // Get current logged-in teacher email helper
+  const getTeacherEmail = (): string | undefined => {
+    return user?.role === 'teacher' ? user.teacherInfo?.email : undefined;
+  };
+
+  // Helper to find which teacher's space a project belongs to in LocalStorage (for local multi-user testing)
+  const findTeacherEmailByProjectId = (projectId: string): string | undefined => {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('peer_eval_projects_')) {
+        const email = key.replace('peer_eval_projects_', '');
+        const projectsData = localStorage.getItem(key);
+        if (projectsData) {
+          try {
+            const projs = JSON.parse(projectsData);
+            if (projs.some((p: any) => p.id === projectId)) {
+              return email;
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+    }
+    return undefined;
+  };
+
+  // Check cloud connection only on mount
   useEffect(() => {
-    setStudents(mockStorage.getStudents());
-    setProjects(mockStorage.getProjects());
-    setEvaluations(mockStorage.getEvaluations());
-    
-    // Check if cloud environment variables are injected
     setCloudConnected({
       supabase: isSupabaseConfigured(),
       sheets: isGoogleSheetsConfigured(),
       gemini: isGeminiConfigured()
     });
   }, []);
+
+  // Reload data dynamically whenever user session changes (Data Isolation)
+  useEffect(() => {
+    const email = getTeacherEmail();
+    setStudents(mockStorage.getStudents(email));
+    setProjects(mockStorage.getProjects(email));
+    setEvaluations(mockStorage.getEvaluations(email));
+  }, [user]);
 
   const loginAsStudent = (email: string): boolean => {
     const found = students.find((s) => s.email.trim().toLowerCase() === email.trim().toLowerCase());
@@ -91,12 +121,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     number: string,
     name: string
   ): { success: boolean; error?: string } => {
-    const project = projects.find((p) => p.active && p.accessCode === accessCode.trim());
-    if (!project) {
+    // 1. Search projects across all local storage keys to find the project matching the access code
+    let matchedProject: Project | undefined = undefined;
+    let foundTeacherEmail: string | undefined = undefined;
+
+    // Check currently loaded projects first
+    matchedProject = projects.find((p) => p.active && p.accessCode === accessCode.trim());
+    if (matchedProject) {
+      foundTeacherEmail = getTeacherEmail();
+    } else {
+      // Search all isolated storage slots
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('peer_eval_projects_')) {
+          const email = key.replace('peer_eval_projects_', '');
+          const projectsData = localStorage.getItem(key);
+          if (projectsData) {
+            try {
+              const projs: Project[] = JSON.parse(projectsData);
+              const foundProj = projs.find((p) => p.active && p.accessCode === accessCode.trim());
+              if (foundProj) {
+                matchedProject = foundProj;
+                foundTeacherEmail = email;
+                break;
+              }
+            } catch (e) {
+              // Ignore
+            }
+          }
+        }
+      }
+    }
+
+    if (!matchedProject) {
       return { success: false, error: '유효하지 않거나 비활성화된 인증번호입니다.' };
     }
 
-    const found = students.find(
+    // 2. Load the corresponding student list for that teacher's space to match the student details
+    const targetStudents = mockStorage.getStudents(foundTeacherEmail);
+    const found = targetStudents.find(
       (s) =>
         s.grade.trim() === grade.trim() &&
         s.classNum.trim() === classNum.trim() &&
@@ -108,7 +171,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const loggedUser: User = {
         role: 'student',
         studentInfo: found,
-        currentProjectId: project.id,
+        currentProjectId: matchedProject.id,
       };
       setUser(loggedUser);
       localStorage.setItem('peer_eval_current_user', JSON.stringify(loggedUser));
@@ -130,8 +193,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const uploadStudents = (newStudents: Student[]) => {
+    const email = getTeacherEmail();
     setStudents(newStudents);
-    mockStorage.saveStudents(newStudents);
+    mockStorage.saveStudents(newStudents, email);
     
     // Cloud Sync if configured
     if (cloudConnected.supabase) {
@@ -145,6 +209,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     questions: Question[],
     selfEvalEnabled: boolean
   ) => {
+    const email = getTeacherEmail();
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
     const newProject: Project = {
       id: `p-${Date.now()}`,
@@ -159,7 +224,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     const updated = [newProject, ...projects];
     setProjects(updated);
-    mockStorage.saveProjects(updated);
+    mockStorage.saveProjects(updated, email);
 
     // Cloud Sync if configured
     if (cloudConnected.supabase) {
@@ -168,9 +233,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateProjectGroups = (projectId: string, groups: Group[]) => {
+    const email = getTeacherEmail();
     const updated = projects.map((p) => (p.id === projectId ? { ...p, groups } : p));
     setProjects(updated);
-    mockStorage.saveProjects(updated);
+    mockStorage.saveProjects(updated, email);
 
     // Cloud Sync if configured
     if (cloudConnected.supabase) {
@@ -182,15 +248,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteProject = (projectId: string) => {
+    const email = getTeacherEmail();
     const updated = projects.filter((p) => p.id !== projectId);
     setProjects(updated);
-    mockStorage.saveProjects(updated);
+    mockStorage.saveProjects(updated, email);
   };
 
   const toggleProjectStatus = (projectId: string) => {
+    const email = getTeacherEmail();
     const updated = projects.map((p) => (p.id === projectId ? { ...p, active: !p.active } : p));
     setProjects(updated);
-    mockStorage.saveProjects(updated);
+    mockStorage.saveProjects(updated, email);
   };
 
   const submitEvaluation = async (
@@ -199,9 +267,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     evaluateeId: string,
     answers: { [questionId: string]: string | number }
   ) => {
-    const evaluator = students.find(s => s.id === evaluatorId);
-    const evaluatee = students.find(s => s.id === evaluateeId);
-    const projectObj = projects.find(p => p.id === projectId);
+    // Determine the target teacher space
+    let targetTeacherEmail = getTeacherEmail();
+    if (!targetTeacherEmail) {
+      targetTeacherEmail = findTeacherEmailByProjectId(projectId);
+    }
+
+    const targetStudents = mockStorage.getStudents(targetTeacherEmail);
+    const targetProjects = mockStorage.getProjects(targetTeacherEmail);
+
+    const evaluator = targetStudents.find(s => s.id === evaluatorId);
+    const evaluatee = targetStudents.find(s => s.id === evaluateeId);
+    const projectObj = targetProjects.find(p => p.id === projectId);
 
     if (!evaluator || !evaluatee || !projectObj) return;
 
@@ -214,15 +291,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       answers
     );
 
-    // 2. Save locally with AI Feedback
+    // 2. Save locally with AI Feedback into the correct isolated space
     mockStorage.saveEvaluation({
       projectId,
       evaluatorId,
       evaluateeId,
       answers,
       aiFeedback: aiText
-    });
-    setEvaluations(mockStorage.getEvaluations());
+    }, targetTeacherEmail);
+    
+    setEvaluations(mockStorage.getEvaluations(targetTeacherEmail));
 
     // 3. Sync to Supabase DB if configured
     if (cloudConnected.supabase) {
@@ -239,7 +317,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 4. Sync to Google Sheets if configured
     if (cloudConnected.sheets) {
       const mappedAnswers = projectObj.questions.map(q => String(answers[q.id] || ''));
-      // Append AI feedback text to the last column
       appendEvaluationToSheet({
         evaluatorName: `${evaluator.grade}학년 ${evaluator.classNum}반 ${evaluator.name}`,
         evaluateeName: `${evaluatee.grade}학년 ${evaluatee.classNum}반 ${evaluatee.name}`,
@@ -250,9 +327,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resetAll = () => {
-    mockStorage.resetAllData();
-    setStudents(mockStorage.getStudents());
-    setProjects(mockStorage.getProjects());
+    const email = getTeacherEmail();
+    mockStorage.resetAllData(email);
+    setStudents(mockStorage.getStudents(email));
+    setProjects(mockStorage.getProjects(email));
     setEvaluations([]);
     logout();
   };
