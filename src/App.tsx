@@ -9,6 +9,103 @@ const MainApp: React.FC = () => {
   const { user } = useApp();
   const [showModal, setShowModal] = useState<'privacy' | 'terms' | null>(null);
 
+  // Markdown parsing to React elements helper
+  const parseMarkdownToReact = (text: string) => {
+    return text.split('\n').map((line, index) => {
+      const trimmed = line.trim();
+      
+      // 1. Headers e.g., # Header
+      if (trimmed.startsWith('# ')) {
+        return (
+          <h2 
+            key={index} 
+            style={{ 
+              fontSize: '22px', 
+              fontWeight: 800, 
+              marginTop: '24px', 
+              marginBottom: '16px', 
+              borderBottom: '2px solid rgba(79, 70, 229, 0.15)', 
+              paddingBottom: '8px', 
+              color: 'var(--primary)' 
+            }}
+          >
+            {trimmed.slice(2)}
+          </h2>
+        );
+      }
+      if (trimmed.startsWith('### ')) {
+        return (
+          <h3 
+            key={index} 
+            style={{ 
+              fontSize: '15px', 
+              fontWeight: 700, 
+              marginTop: '20px', 
+              marginBottom: '10px', 
+              color: 'var(--text-main)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span style={{ width: '4px', height: '14px', background: 'var(--primary)', borderRadius: '2px', display: 'inline-block' }} />
+            {trimmed.slice(4)}
+          </h3>
+        );
+      }
+      
+      // 2. Horizontal Rule e.g., ---
+      if (trimmed === '---') {
+        return <hr key={index} style={{ border: 'none', borderTop: '1px solid var(--glass-border)', margin: '20px 0' }} />;
+      }
+      
+      // 3. Bold text parsing e.g., **Text**
+      let content: React.ReactNode = line;
+      if (line.includes('**')) {
+        const parts = line.split('**');
+        content = parts.map((part, pIdx) => 
+          pIdx % 2 === 1 
+            ? <strong key={pIdx} style={{ fontWeight: 700, color: 'var(--primary)' }}>{part}</strong> 
+            : part
+        );
+      }
+      
+      // 4. Bullet lists e.g., 1. Item or - Item
+      if (trimmed.match(/^\d+\./)) {
+        return (
+          <p key={index} style={{ margin: '8px 0', paddingLeft: '16px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            {content}
+          </p>
+        );
+      }
+      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        // Safe check if content is array or string
+        const bulletText = typeof content === 'string' 
+          ? content.slice(2) 
+          : React.Children.toArray(content).slice(1); // Skip the "- " part roughly
+          
+        return (
+          <p key={index} style={{ margin: '8px 0', paddingLeft: '20px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', position: 'relative' }}>
+            <span style={{ position: 'absolute', left: '8px', color: 'var(--primary)' }}>•</span>
+            {bulletText}
+          </p>
+        );
+      }
+
+      // 5. Empty line
+      if (!trimmed) {
+        return <div key={index} style={{ height: '8px' }} />;
+      }
+
+      // 6. Normal paragraph
+      return (
+        <p key={index} style={{ margin: '8px 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+          {content}
+        </p>
+      );
+    });
+  };
+
   const renderContent = () => {
     if (!user) {
       return <Login />;
@@ -102,8 +199,8 @@ const MainApp: React.FC = () => {
             >
               ✕
             </button>
-            <div style={{ whiteSpace: 'pre-line', fontSize: '13px', lineHeight: '1.6', color: 'var(--text-main)', textAlign: 'left' }}>
-              {showModal === 'terms' ? TERMS_OF_SERVICE : PRIVACY_POLICY}
+            <div style={{ fontSize: '13px', color: 'var(--text-main)', textAlign: 'left' }}>
+              {parseMarkdownToReact(showModal === 'terms' ? TERMS_OF_SERVICE : PRIVACY_POLICY)}
             </div>
           </div>
         </div>
