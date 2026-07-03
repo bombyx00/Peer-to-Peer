@@ -102,7 +102,7 @@ export const Login: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -127,7 +127,7 @@ export const Login: React.FC = () => {
         return;
       }
 
-      const result = loginAsStudentWithCode(
+      const result = await loginAsStudentWithCode(
         accessCode.trim(),
         grade.trim(),
         classNum.trim(),

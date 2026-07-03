@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { mockStorage } from '../services/mockStorage';
 import type { Student, Project, Group, Question, Evaluation } from '../services/mockStorage';
-import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase } from '../services/supabase';
+import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails } from '../services/supabase';
 import { isGoogleSheetsConfigured, appendEvaluationToSheet } from '../services/sheets';
 import { isGeminiConfigured, generateAIFeedback } from '../services/gemini';
 
@@ -25,7 +25,7 @@ interface AppContextType {
     classNum: string,
     number: string,
     name: string
-  ) => { success: boolean; error?: string };
+  ) => Promise<{ success: boolean; error?: string }>;
   loginAsTeacher: (email: string, name: string) => void;
   logout: () => void;
   uploadStudents: (students: Student[]) => void;
@@ -121,13 +121,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   };
 
-  const loginAsStudentWithCode = (
+  const loginAsStudentWithCode = async (
     accessCode: string,
     grade: string,
     classNum: string,
     number: string,
     name: string
-  ): { success: boolean; error?: string } => {
+  ): Promise<{ success: boolean; error?: string }> => {
     // 1. Search projects across all local storage keys to find the project matching the access code
     let matchedProject: Project | undefined = undefined;
     let foundTeacherEmail: string | undefined = undefined;
@@ -160,19 +160,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
+    // 2. If not found locally but Supabase is configured, fetch from cloud DB!
+    if (!matchedProject && cloudConnected.supabase) {
+      const cloudProj = await fetchProjectByAccessCode(accessCode);
+      if (cloudProj) {
+        matchedProject = {
+          id: cloudProj.id,
+          title: cloudProj.title,
+          description: cloudProj.description,
+          questions: typeof cloudProj.questions === 'string' ? JSON.parse(cloudProj.questions) : cloudProj.questions,
+          selfEvalEnabled: cloudProj.selfEvalEnabled,
+          groups: typeof cloudProj.groups === 'string' ? JSON.parse(cloudProj.groups) : (cloudProj.groups || []),
+          active: cloudProj.active,
+          createdAt: cloudProj.createdAt,
+          accessCode: cloudProj.accessCode,
+        };
+      }
+    }
+
     if (!matchedProject) {
       return { success: false, error: '유효하지 않거나 비활성화된 인증번호입니다.' };
     }
 
-    // 2. Load the corresponding student list for that teacher's space to match the student details
+    // 3. Load the corresponding student list for that teacher's space to match the student details
     const targetStudents = mockStorage.getStudents(foundTeacherEmail);
-    const found = targetStudents.find(
+    let found = targetStudents.find(
       (s) =>
         s.grade.trim() === grade.trim() &&
         s.classNum.trim() === classNum.trim() &&
         s.number.trim() === number.trim() &&
         s.name.trim() === name.trim()
     );
+
+    // 4. If not found in local student roster but Supabase is configured, fetch from cloud DB!
+    if (!found && cloudConnected.supabase) {
+      const cloudStudent = await fetchStudentByDetails(grade, classNum, number, name);
+      if (cloudStudent) {
+        found = {
+          id: cloudStudent.id,
+          grade: cloudStudent.grade,
+          classNum: cloudStudent.classNum,
+          number: cloudStudent.number,
+          name: cloudStudent.name,
+          email: cloudStudent.email,
+        };
+      }
+    }
 
     if (found) {
       const loggedUser: User = {

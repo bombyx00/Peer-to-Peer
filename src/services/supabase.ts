@@ -78,3 +78,57 @@ export const submitEvaluationToSupabase = async (evaluation: any) => {
     return false;
   }
 };
+
+// 인증번호로 활성화된 프로젝트 조회
+export const fetchProjectByAccessCode = async (accessCode: string): Promise<any | null> => {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/projects?accessCode=eq.${accessCode.trim()}&active=eq.true`, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.length > 0 ? data[0] : null;
+    }
+    return null;
+  } catch (error) {
+    console.error('Supabase 프로젝트 조회 실패:', error);
+    return null;
+  }
+};
+
+// 학적 정보를 통한 학생 조회
+export const fetchStudentByDetails = async (
+  grade: string,
+  classNum: string,
+  number: string,
+  name: string
+): Promise<any | null> => {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/students?grade=eq.${grade.trim()}&classNum=eq.${classNum.trim()}&number=eq.${number.trim()}&name=eq.${name.trim()}`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      return data.length > 0 ? data[0] : null;
+    }
+    return null;
+  } catch (error) {
+    console.error('Supabase 학생 조회 실패:', error);
+    return null;
+  }
+};
