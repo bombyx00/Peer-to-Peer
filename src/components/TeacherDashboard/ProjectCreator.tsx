@@ -117,6 +117,13 @@ export const ProjectCreator: React.FC = () => {
     setSelfEvalEnabled(true);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    // Prevent accidental submit via Enter key except inside textareas where newline is expected
+    if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+      e.preventDefault();
+    }
+  };
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px', alignItems: 'start' }}>
       {/* Left side: Create form */}
@@ -151,7 +158,7 @@ export const ProjectCreator: React.FC = () => {
           </div>
         )}
         
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
               프로젝트 제목
@@ -393,15 +400,19 @@ export const ProjectCreator: React.FC = () => {
                       onClick={() => handleStartEdit(proj)}
                       className="btn btn-secondary"
                       style={{
-                        padding: '6px 10px',
+                        padding: '6px 12px',
                         fontSize: '11px',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '3px'
+                        justifyContent: 'center',
+                        border: '1px solid rgba(79, 70, 229, 0.2)',
+                        color: 'var(--primary)',
+                        background: 'rgba(79, 70, 229, 0.05)',
+                        borderRadius: '8px'
                       }}
                       title="프로젝트 수정"
                     >
-                      <Edit size={12} />
+                      <Edit size={14} />
                     </button>
                     <button
                       onClick={() => {
@@ -411,11 +422,12 @@ export const ProjectCreator: React.FC = () => {
                       }}
                       className="btn btn-secondary"
                       style={{
-                        padding: '6px 10px',
+                        padding: '6px 12px',
                         fontSize: '11px',
                         border: '1px solid rgba(239, 68, 68, 0.2)',
                         color: 'var(--danger)',
-                        background: 'transparent'
+                        background: 'transparent',
+                        borderRadius: '8px'
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--danger-light)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}

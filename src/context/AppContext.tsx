@@ -189,6 +189,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const loginAsTeacher = (email: string, name: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    
+    // Automatic Migration: Copy pre-login storage data to teacher-specific keys if they are empty
+    const userProjectKey = `peer_eval_projects_${cleanEmail}`;
+    const userStudentKey = `peer_eval_students_${cleanEmail}`;
+    const userEvalKey = `peer_eval_evaluations_${cleanEmail}`;
+
+    if (!localStorage.getItem(userProjectKey)) {
+      const oldProjects = localStorage.getItem('peer_eval_projects');
+      if (oldProjects) {
+        localStorage.setItem(userProjectKey, oldProjects);
+      }
+    }
+    if (!localStorage.getItem(userStudentKey)) {
+      const oldStudents = localStorage.getItem('peer_eval_students');
+      if (oldStudents) {
+        localStorage.setItem(userStudentKey, oldStudents);
+      }
+    }
+    if (!localStorage.getItem(userEvalKey)) {
+      const oldEvals = localStorage.getItem('peer_eval_evaluations');
+      if (oldEvals) {
+        localStorage.setItem(userEvalKey, oldEvals);
+      }
+    }
+
     const loggedUser: User = { role: 'teacher', teacherInfo: { email, name } };
     setUser(loggedUser);
     localStorage.setItem('peer_eval_current_user', JSON.stringify(loggedUser));
