@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import type { Group, Student } from '../../services/mockStorage';
 import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
-import { Plus, Trash2, Users, ArrowRightLeft, UserCheck, HelpCircle } from 'lucide-react';
+import { Plus, Trash2, Users, ArrowRightLeft, UserCheck, HelpCircle, RotateCcw } from 'lucide-react';
 
 // Draggable Student Card Component
 const DraggableStudent: React.FC<{ student: Student }> = ({ student }) => {
@@ -200,6 +200,29 @@ export const GroupManager: React.FC = () => {
     updateProjectGroups(selectedProjectId, updatedGroups);
   };
 
+  const resetAllocations = () => {
+    if (!selectedProjectId) return;
+    if (groups.length === 0) {
+      alert('초기화할 모둠이 없습니다.');
+      return;
+    }
+    
+    const assignedCount = groups.reduce((acc, g) => acc + g.memberIds.length, 0);
+    if (assignedCount === 0) {
+      alert('이미 모든 학생이 미배정 상태입니다.');
+      return;
+    }
+
+    if (confirm('⚠️ 정말 모든 모둠 배정을 초기화하시겠습니까?\n배정된 모든 학생이 미배정 상태(대기 목록)로 되돌아갑니다.')) {
+      const updatedGroups = groups.map((g) => ({
+        ...g,
+        memberIds: [],
+      }));
+      setGroups(updatedGroups);
+      updateProjectGroups(selectedProjectId, updatedGroups);
+    }
+  };
+
   if (projects.length === 0) {
     return (
       <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
@@ -245,6 +268,25 @@ export const GroupManager: React.FC = () => {
 
           <button onClick={autoAllocate} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '13px', background: 'var(--primary-light)', color: 'var(--primary)', border: 'none' }}>
             <ArrowRightLeft size={14} /> 자동 균등 배정
+          </button>
+
+          <button
+            onClick={resetAllocations}
+            className="btn btn-secondary"
+            style={{
+              padding: '8px 16px',
+              fontSize: '13px',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              color: 'var(--danger)',
+              background: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--danger-light)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <RotateCcw size={14} /> 배정 초기화
           </button>
         </div>
       </div>
