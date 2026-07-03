@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { mockStorage } from '../services/mockStorage';
 import type { Student, Project, Group, Question, Evaluation } from '../services/mockStorage';
-import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails, deleteProjectFromSupabase, clearAllCloudData } from '../services/supabase';
+import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails, deleteProjectFromSupabase, clearAllCloudData, fetchProjectById, fetchAllStudentsFromSupabase, fetchEvaluationsFromSupabase } from '../services/supabase';
 import { isGoogleSheetsConfigured, appendEvaluationToSheet } from '../services/sheets';
 import { isGeminiConfigured, generateAIFeedback } from '../services/gemini';
 
@@ -104,11 +104,75 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Reload data dynamically whenever user session changes (Data Isolation)
   useEffect(() => {
-    const email = getTeacherEmail();
-    setStudents(mockStorage.getStudents(email));
-    setProjects(mockStorage.getProjects(email));
-    setEvaluations(mockStorage.getEvaluations(email));
-  }, [user]);
+    const loadData = async () => {
+      let email = getTeacherEmail();
+      
+      // If user is a student, determine which teacher space they belong to
+      if (!email && user?.role === 'student' && user.currentProjectId) {
+        email = findTeacherEmailByProjectId(user.currentProjectId);
+      }
+      
+      let loadedStudents = mockStorage.getStudents(email);
+      let loadedProjects = mockStorage.getProjects(email);
+      let loadedEvaluations = mockStorage.getEvaluations(email);
+
+      // If Supabase is configured and we are a student, pull current data from Cloud DB
+      if (user?.role === 'student' && cloudConnected.supabase && user.currentProjectId) {
+        const cloudProj = await fetchProjectById(user.currentProjectId);
+        if (cloudProj) {
+          const parsedProj: Project = {
+            id: cloudProj.id,
+            title: cloudProj.title,
+            description: cloudProj.description,
+            questions: typeof cloudProj.questions === 'string' ? JSON.parse(cloudProj.questions) : cloudProj.questions,
+            selfEvalEnabled: cloudProj.selfEvalEnabled,
+            groups: typeof cloudProj.groups === 'string' ? JSON.parse(cloudProj.groups) : (cloudProj.groups || []),
+            active: cloudProj.active,
+            createdAt: cloudProj.createdAt,
+            accessCode: cloudProj.accessCode,
+          };
+          loadedProjects = [parsedProj];
+          
+          // Fetch all students from Supabase to match other members in groups
+          const cloudStudents = await fetchAllStudentsFromSupabase();
+          if (cloudStudents.length > 0) {
+            loadedStudents = cloudStudents.map((cs: any) => ({
+              id: cs.id,
+              grade: cs.grade,
+              classNum: cs.classNum,
+              number: cs.number,
+              name: cs.name,
+              email: cs.email,
+            }));
+          }
+
+          // Fetch evaluations of this evaluator for this project
+          const cloudEvals = await fetchEvaluationsFromSupabase(user.currentProjectId, user.studentInfo?.id || '');
+          if (cloudEvals.length > 0) {
+            loadedEvaluations = cloudEvals.map((ce: any) => ({
+              id: ce.id,
+              projectId: ce.projectId,
+              evaluatorId: ce.evaluatorId,
+              evaluateeId: ce.evaluateeId,
+              answers: typeof ce.answers === 'string' ? JSON.parse(ce.answers) : ce.answers,
+              aiFeedback: ce.aiFeedback,
+              submittedAt: ce.submittedAt,
+            }));
+          }
+        } else {
+          // If project was deleted from Supabase, force logout the student
+          logout();
+          return;
+        }
+      }
+
+      setStudents(loadedStudents);
+      setProjects(loadedProjects);
+      setEvaluations(loadedEvaluations);
+    };
+
+    loadData();
+  }, [user, cloudConnected.supabase]);
 
   const loginAsStudent = (email: string): boolean => {
     const found = students.find((s) => s.email.trim().toLowerCase() === email.trim().toLowerCase());

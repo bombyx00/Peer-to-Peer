@@ -189,3 +189,73 @@ export const clearAllCloudData = async (): Promise<boolean> => {
     return false;
   }
 };
+
+// 프로젝트 고유 ID로 Supabase DB 조회
+export const fetchProjectById = async (projectId: string): Promise<any | null> => {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/projects?id=eq.${projectId}`, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.length > 0 ? data[0] : null;
+    }
+    return null;
+  } catch (error) {
+    console.error('Supabase 프로젝트 ID 조회 실패:', error);
+    return null;
+  }
+};
+
+// Supabase DB에 저장된 전체 학생 명단 조회
+export const fetchAllStudentsFromSupabase = async (): Promise<any[]> => {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/students`, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    return [];
+  } catch (error) {
+    console.error('Supabase 전체 학생 조회 실패:', error);
+    return [];
+  }
+};
+
+// 특정 학생이 수행한 특정 프로젝트의 평가 리스트 조회
+export const fetchEvaluationsFromSupabase = async (projectId: string, evaluatorId: string): Promise<any[]> => {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/evaluations?projectId=eq.${projectId}&evaluatorId=eq.${evaluatorId}`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    if (response.ok) {
+      return await response.json();
+    }
+    return [];
+  } catch (error) {
+    console.error('Supabase 평가 조회 실패:', error);
+    return [];
+  }
+};

@@ -62,6 +62,14 @@ export const mockStorage = {
       localStorage.setItem(key, JSON.stringify([]));
       return [];
     }
+    // Clean up stale demo data in unsuffixed/suffixed keys if any
+    try {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.some(s => s.id === '1' && s.name === '김철수')) {
+        localStorage.setItem(key, JSON.stringify([]));
+        return [];
+      }
+    } catch(e) {}
     return JSON.parse(data);
   },
 
@@ -77,6 +85,14 @@ export const mockStorage = {
       localStorage.setItem(key, JSON.stringify([]));
       return [];
     }
+    // Clean up stale demo data in unsuffixed/suffixed keys if any
+    try {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.some(p => p.id === 'demo-p1')) {
+        localStorage.setItem(key, JSON.stringify([]));
+        return [];
+      }
+    } catch(e) {}
     return JSON.parse(data);
   },
 
