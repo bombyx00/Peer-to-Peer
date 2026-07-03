@@ -191,14 +191,14 @@ export const MonitoringDashboard: React.FC = () => {
           flexWrap: 'wrap'
         }}>
           <div style={{ flex: 1, minWidth: '280px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 700, letterSpacing: '1px' }}>STUDENT ACCESS INFO</span>
-            <h3 style={{ fontSize: '20px', fontWeight: 800, marginTop: '4px', marginBottom: '8px' }}>학생 접속 안내</h3>
+            <span style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 700, letterSpacing: '1px', fontFamily: 'var(--font-joseon)' }}>STUDENT ACCESS INFO</span>
+            <h3 style={{ fontSize: '22px', fontWeight: 800, marginTop: '4px', marginBottom: '8px', fontFamily: 'var(--font-yeongwol)' }}>학생 접속 안내</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
               선생님이 이 화면을 빔 프로젝터나 대형 모니터에 띄워주시면, 학생들이 **QR 코드**를 스캔하거나 아래 **인증번호**를 사용해 손쉽게 자기 학적 정보를 넣고 접속할 수 있습니다.
             </p>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <div style={{ background: 'white', padding: '8px 16px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>평가 인증번호</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)' }}>평가 인증번호</span>
                 <span style={{ fontSize: '22px', fontWeight: 800, color: 'var(--primary)', letterSpacing: '1px', lineHeight: '1.2' }}>
                   {projectToMonitor.accessCode}
                 </span>
@@ -206,7 +206,7 @@ export const MonitoringDashboard: React.FC = () => {
               <button 
                 onClick={() => setShowQRModal(true)} 
                 className="btn btn-secondary" 
-                style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}
+                style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontFamily: 'var(--font-joseon)' }}
               >
                 QR코드 크게 띄우기
               </button>
@@ -239,18 +239,18 @@ export const MonitoringDashboard: React.FC = () => {
 
       {/* Progress Metrics */}
       <div className="glass-panel" style={{ padding: '24px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>평가 제출 현황 통계</h3>
+        <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>평가 제출 현황 통계</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
           <div style={{ background: 'white', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(0,0,0,0.03)' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px' }}>전체 대상 인원</div>
-            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>{totalStudentsInProject}명</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px', fontFamily: 'var(--font-joseon)' }}>전체 대상 인원</div>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-joseon)' }}>{totalStudentsInProject}명</div>
           </div>
           <div style={{ background: 'white', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(0,0,0,0.03)' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px' }}>제출 완료 인원</div>
-            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--success)' }}>{completedCount}명</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px', fontFamily: 'var(--font-joseon)' }}>제출 완료 인원</div>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--success)', fontFamily: 'var(--font-joseon)' }}>{completedCount}명</div>
           </div>
           <div style={{ background: 'white', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(0,0,0,0.03)' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px' }}>현재 제출 진행률</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px', fontFamily: 'var(--font-joseon)' }}>현재 제출 진행률</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)' }}>{progressPercent}%</div>
               <div style={{ flex: 1, background: 'rgba(0,0,0,0.05)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
@@ -264,7 +264,7 @@ export const MonitoringDashboard: React.FC = () => {
       {/* Grid: Group Detail Panels */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
         <div className="glass-panel" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>모둠별 세부 제출 현황판</h3>
+          <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>모둠별 세부 제출 현황판</h3>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {projectToMonitor.groups.map((group) => {
@@ -272,16 +272,16 @@ export const MonitoringDashboard: React.FC = () => {
               
               return (
                 <div key={group.id} style={{ background: 'rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', padding: '16px', border: '1px solid var(--glass-border)' }}>
-                  <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '12px', color: 'var(--primary)' }}>{group.name}</h4>
+                  <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '12px', color: 'var(--primary)', fontFamily: 'var(--font-yeongwol)' }}>{group.name}</h4>
                   
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
-                          <th style={{ textAlign: 'left', padding: '8px', fontWeight: 600 }}>평가 제출자</th>
-                          <th style={{ textAlign: 'center', padding: '8px', width: '120px', fontWeight: 600 }}>최종 제출 상태</th>
+                          <th style={{ textAlign: 'left', padding: '8px', fontWeight: 600, fontFamily: 'var(--font-joseon)', fontSize: '13px' }}>평가 제출자</th>
+                          <th style={{ textAlign: 'center', padding: '8px', width: '120px', fontWeight: 600, fontFamily: 'var(--font-joseon)', fontSize: '13px' }}>최종 제출 상태</th>
                           {groupStudents.map((s) => (
-                            <th key={s.id} style={{ textAlign: 'center', padding: '8px', fontWeight: 500 }}>
+                            <th key={s.id} style={{ textAlign: 'center', padding: '8px', fontWeight: 500, fontFamily: 'var(--font-joseon)', fontSize: '13px' }}>
                               {s.name} 평가
                             </th>
                           ))}
@@ -292,16 +292,16 @@ export const MonitoringDashboard: React.FC = () => {
                           const isDone = isSubmissionComplete(evaluator.id);
                           return (
                             <tr key={evaluator.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
-                              <td style={{ padding: '10px 8px', fontWeight: 600 }}>
+                              <td style={{ padding: '10px 8px', fontWeight: 600, fontFamily: 'var(--font-joseon)', fontSize: '14px' }}>
                                 {evaluator.grade}-{evaluator.classNum}-{evaluator.number} {evaluator.name}
                               </td>
                               <td style={{ padding: '10px 8px', textAlign: 'center' }}>
                                 {isDone ? (
-                                  <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                                  <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, fontFamily: 'var(--font-joseon)' }}>
                                     <CheckCircle size={14} /> 완료
                                   </span>
                                 ) : (
-                                  <span style={{ color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                  <span style={{ color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontFamily: 'var(--font-joseon)' }}>
                                     <XCircle size={14} /> 미완료
                                   </span>
                                 )}
@@ -349,7 +349,7 @@ export const MonitoringDashboard: React.FC = () => {
 
       {/* AI 피드백 모아보기 표 */}
       <div className="glass-panel" style={{ padding: '24px', marginTop: '24px' }}>
-        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>AI 종합 서술형 평가 모아보기</h3>
+        <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>AI 종합 서술형 평가 모아보기</h3>
         <div style={{ overflowX: 'auto' }}>
           {evaluations.filter((e) => e.projectId === projectToMonitor.id).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)', fontSize: '14px' }}>
@@ -359,10 +359,10 @@ export const MonitoringDashboard: React.FC = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
-                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600, width: '150px' }}>평가자</th>
-                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600, width: '150px' }}>피평가자</th>
-                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600 }}>생성된 AI 서술형 피드백</th>
-                  <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 600, width: '150px' }}>작성 일시</th>
+                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600, width: '150px', fontFamily: 'var(--font-joseon)' }}>평가자</th>
+                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600, width: '150px', fontFamily: 'var(--font-joseon)' }}>피평가자</th>
+                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600, fontFamily: 'var(--font-joseon)' }}>생성된 AI 서술형 피드백</th>
+                  <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 600, width: '150px', fontFamily: 'var(--font-joseon)' }}>작성 일시</th>
                 </tr>
               </thead>
               <tbody>
@@ -383,16 +383,16 @@ export const MonitoringDashboard: React.FC = () => {
 
                     return (
                       <tr key={evalItem.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
-                        <td style={{ padding: '12px 8px', fontWeight: 600 }}>
+                        <td style={{ padding: '12px 8px', fontWeight: 600, fontFamily: 'var(--font-joseon)' }}>
                           {evaluator ? `${evaluator.name} (${evaluator.grade}학년 ${evaluator.classNum}반)` : '알 수 없음'}
                         </td>
-                        <td style={{ padding: '12px 8px', fontWeight: 600, color: 'var(--primary)' }}>
+                        <td style={{ padding: '12px 8px', fontWeight: 600, color: 'var(--primary)', fontFamily: 'var(--font-joseon)' }}>
                           {evaluatee ? `${evaluatee.name} (${evaluatee.grade}학년 ${evaluatee.classNum}반)` : '알 수 없음'}
                         </td>
-                        <td style={{ padding: '12px 8px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                        <td style={{ padding: '12px 8px', color: 'var(--text-secondary)', lineHeight: '1.5', fontFamily: 'var(--font-joseon)' }}>
                           {evalItem.aiFeedback || '피드백 생성 중...'}
                         </td>
-                        <td style={{ padding: '12px 8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '11px' }}>
+                        <td style={{ padding: '12px 8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', fontFamily: 'var(--font-joseon)' }}>
                           {new Date(evalItem.submittedAt).toLocaleString('ko-KR')}
                         </td>
                       </tr>
