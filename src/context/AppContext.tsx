@@ -35,6 +35,13 @@ interface AppContextType {
     questions: Question[],
     selfEvalEnabled: boolean
   ) => void;
+  updateProject: (
+    projectId: string,
+    title: string,
+    description: string,
+    questions: Question[],
+    selfEvalEnabled: boolean
+  ) => void;
   updateProjectGroups: (projectId: string, groups: Group[]) => void;
   deleteProject: (projectId: string) => void;
   toggleProjectStatus: (projectId: string) => void;
@@ -232,6 +239,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const updateProject = (
+    projectId: string,
+    title: string,
+    description: string,
+    questions: Question[],
+    selfEvalEnabled: boolean
+  ) => {
+    const email = getTeacherEmail();
+    const updated = projects.map((p) =>
+      p.id === projectId ? { ...p, title, description, questions, selfEvalEnabled } : p
+    );
+    setProjects(updated);
+    mockStorage.saveProjects(updated, email);
+
+    // Cloud Sync if configured
+    if (cloudConnected.supabase) {
+      const targetProj = updated.find((p) => p.id === projectId);
+      if (targetProj) {
+        syncProjectToSupabase(targetProj);
+      }
+    }
+  };
+
   const updateProjectGroups = (projectId: string, groups: Group[]) => {
     const email = getTeacherEmail();
     const updated = projects.map((p) => (p.id === projectId ? { ...p, groups } : p));
@@ -349,6 +379,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logout,
         uploadStudents,
         createProject,
+        updateProject,
         updateProjectGroups,
         deleteProject,
         toggleProjectStatus,

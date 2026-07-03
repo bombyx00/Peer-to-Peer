@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import type { Question } from '../../services/mockStorage';
-import { Plus, Trash2, Calendar, FileText, Settings, ChevronUp, ChevronDown } from 'lucide-react';
+import type { Question, Project } from '../../services/mockStorage';
+import { Plus, Trash2, Calendar, FileText, Settings, ChevronUp, ChevronDown, Edit } from 'lucide-react';
 
 const getDefaultPlaceholder = (type: 'rating' | 'slider' | 'text') => {
   const defaultTexts = {
@@ -13,7 +13,7 @@ const getDefaultPlaceholder = (type: 'rating' | 'slider' | 'text') => {
 };
 
 export const ProjectCreator: React.FC = () => {
-  const { projects, createProject, deleteProject, toggleProjectStatus } = useApp();
+  const { projects, createProject, updateProject, deleteProject, toggleProjectStatus } = useApp();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selfEvalEnabled, setSelfEvalEnabled] = useState(true);
@@ -22,6 +22,8 @@ export const ProjectCreator: React.FC = () => {
     { id: 'q-1', type: 'rating', questionText: '', required: true },
     { id: 'q-2', type: 'slider', questionText: '', required: true },
   ]);
+
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
 
   const addQuestion = (type: 'rating' | 'slider' | 'text') => {
     const newQuestion: Question = {
@@ -59,6 +61,26 @@ export const ProjectCreator: React.FC = () => {
     setQuestions(questions.map((q) => (q.id === id ? { ...q, required } : q)));
   };
 
+  const handleStartEdit = (project: Project) => {
+    setEditingProjectId(project.id);
+    setTitle(project.title);
+    setDescription(project.description);
+    setQuestions(project.questions);
+    setSelfEvalEnabled(project.selfEvalEnabled);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingProjectId(null);
+    setTitle('');
+    setDescription('');
+    setQuestions([
+      { id: 'q-1', type: 'rating', questionText: '', required: true },
+      { id: 'q-2', type: 'slider', questionText: '', required: true },
+    ]);
+    setSelfEvalEnabled(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
@@ -77,14 +99,22 @@ export const ProjectCreator: React.FC = () => {
       return q;
     });
 
-    createProject(title, description, finalQuestions, selfEvalEnabled);
+    if (editingProjectId) {
+      updateProject(editingProjectId, title, description, finalQuestions, selfEvalEnabled);
+      setEditingProjectId(null);
+      alert('프로젝트 정보가 수정되었습니다.');
+    } else {
+      createProject(title, description, finalQuestions, selfEvalEnabled);
+      alert('새 프로젝트가 생성되었습니다. 모둠 배정 탭으로 가셔서 모둠을 구성해주세요.');
+    }
+
     setTitle('');
     setDescription('');
     setQuestions([
       { id: 'q-1', type: 'rating', questionText: '', required: true },
       { id: 'q-2', type: 'slider', questionText: '', required: true },
     ]);
-    alert('새 프로젝트가 생성되었습니다. 모둠 배정 탭으로 가셔서 모둠을 구성해주세요.');
+    setSelfEvalEnabled(true);
   };
 
   return (
@@ -93,8 +123,33 @@ export const ProjectCreator: React.FC = () => {
       <div className="glass-panel" style={{ padding: '28px' }}>
         <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Settings size={20} color="var(--primary)" />
-          새 상호평가 프로젝트 설계
+          {editingProjectId ? '프로젝트 정보 수정' : '새 상호평가 프로젝트 설계'}
         </h3>
+
+        {editingProjectId && (
+          <div style={{
+            background: 'var(--primary-light)',
+            border: '1px solid rgba(79, 70, 229, 0.2)',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--primary)' }}>
+              🔧 프로젝트 수정 모드 진행 중
+            </span>
+            <button
+              type="button"
+              onClick={handleCancelEdit}
+              className="btn btn-secondary"
+              style={{ padding: '4px 8px', fontSize: '11px', background: 'transparent' }}
+            >
+              수정 취소
+            </button>
+          </div>
+        )}
         
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
@@ -262,7 +317,7 @@ export const ProjectCreator: React.FC = () => {
           </div>
 
           <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px', fontSize: '15px' }}>
-            프로젝트 최종 등록
+            {editingProjectId ? '프로젝트 정보 수정 완료' : '프로젝트 최종 등록'}
           </button>
         </form>
       </div>
@@ -335,6 +390,20 @@ export const ProjectCreator: React.FC = () => {
                       {proj.active ? '평가 종료' : '평가 개시'}
                     </button>
                     <button
+                      onClick={() => handleStartEdit(proj)}
+                      className="btn btn-secondary"
+                      style={{
+                        padding: '6px 10px',
+                        fontSize: '11px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}
+                      title="프로젝트 수정"
+                    >
+                      <Edit size={12} />
+                    </button>
+                    <button
                       onClick={() => {
                         if (confirm('이 프로젝트와 관련된 모든 평가 데이터가 삭제됩니다. 정말 삭제하시겠습니까?')) {
                           deleteProject(proj.id);
@@ -342,7 +411,7 @@ export const ProjectCreator: React.FC = () => {
                       }}
                       className="btn btn-secondary"
                       style={{
-                        padding: '6px 12px',
+                        padding: '6px 10px',
                         fontSize: '11px',
                         border: '1px solid rgba(239, 68, 68, 0.2)',
                         color: 'var(--danger)',
@@ -350,6 +419,7 @@ export const ProjectCreator: React.FC = () => {
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--danger-light)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      title="프로젝트 삭제"
                     >
                       <Trash2 size={13} />
                     </button>
