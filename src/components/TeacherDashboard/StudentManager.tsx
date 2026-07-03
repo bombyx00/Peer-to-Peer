@@ -41,14 +41,15 @@ export const StudentManager: React.FC = () => {
         return;
       }
 
-      if (parts.length >= 5) {
+      // Allow 4 or more columns (Email is optional)
+      if (parts.length >= 4) {
         parsedStudents.push({
           id: `s-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           grade: parts[0],
           classNum: parts[1],
           number: parts[2],
           name: parts[3],
-          email: parts[4],
+          email: parts[4] || '', // Optional email
         });
       }
     });
@@ -58,7 +59,7 @@ export const StudentManager: React.FC = () => {
       setCsvText('');
       showSuccess(`성공적으로 ${parsedStudents.length}명의 학생을 등록했습니다.`);
     } else {
-      alert('올바른 CSV 형식이 아닙니다. (예시: 학년,반,번호,이름,이메일)');
+      alert('올바른 CSV 형식이 아닙니다. (예시: 학년,반,번호,이름,이메일(선택))');
     }
   };
 
@@ -107,9 +108,10 @@ export const StudentManager: React.FC = () => {
 
   const handleSingleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const { grade, classNum, number, name, email } = singleStudent;
-    if (!grade || !classNum || !number || !name || !email) {
-      alert('모든 필드를 입력해주세요.');
+    const { grade, classNum, number, name } = singleStudent;
+    // Email is no longer required
+    if (!grade || !classNum || !number || !name) {
+      alert('이메일을 제외한 모든 필수 필드(학년, 반, 번호, 이름)를 입력해주세요.');
       return;
     }
 
@@ -136,7 +138,7 @@ export const StudentManager: React.FC = () => {
 
   const downloadTemplate = () => {
     // UTF-8 with BOM (\uFEFF) to make sure Excel opens it perfectly without broken Korean characters
-    const csvContent = "\uFEFF학년,반,번호,이름,이메일\n3,1,1,김철수,chulsoo@gmail.com\n3,1,2,이영희,younghee@gmail.com";
+    const csvContent = "\uFEFF학년,반,번호,이름,이메일(선택)\n3,1,1,김철수,chulsoo@gmail.com\n3,1,2,이영희,younghee@gmail.com\n3,1,3,박지성,";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -191,13 +193,13 @@ export const StudentManager: React.FC = () => {
             <form onSubmit={handleCsvTextSubmit}>
               <div style={{ marginBottom: '8px' }}>
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  형식: 학년, 반, 번호, 이름, 이메일 (한 줄에 한 명씩 쉼표 구분)
+                  형식: 학년, 반, 번호, 이름, 이메일(선택) (한 줄에 한 명씩 쉼표 구분)
                 </span>
               </div>
               <textarea
                 className="glass-input"
                 style={{ minHeight: '100px', resize: 'vertical', fontFamily: 'monospace', fontSize: '12px', marginBottom: '12px' }}
-                placeholder="예시:&#10;3,1,1,김철수,chulsoo@gmail.com&#10;3,1,2,이영희,younghee@gmail.com"
+                placeholder="예시:&#10;3,1,1,김철수,chulsoo@gmail.com&#10;3,1,2,이영희,younghee@gmail.com&#10;3,1,3,박지성,"
                 value={csvText}
                 onChange={(e) => setCsvText(e.target.value)}
               />
@@ -258,11 +260,11 @@ export const StudentManager: React.FC = () => {
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
-                구글 이메일 주소
+                구글 이메일 주소 (선택)
               </label>
               <input
                 type="email"
-                placeholder="teacher-approved-email@gmail.com"
+                placeholder="teacher-approved-email@gmail.com (선택)"
                 className="glass-input"
                 value={singleStudent.email}
                 onChange={(e) => setSingleStudent({ ...singleStudent, email: e.target.value })}
@@ -277,79 +279,60 @@ export const StudentManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Right side: Student list */}
-      <div className="glass-panel" style={{ padding: '24px', maxHeight: '660px', display: 'flex', flexDirection: 'column' }}>
-        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
-          학생 목록 ({students.length}명)
-        </h3>
+      {/* Right side: Students List */}
+      <div className="glass-panel" style={{ padding: '24px', maxHeight: '720px', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 600 }}>등록된 학생 명단 ({students.length}명)</h3>
+          {successMsg && (
+            <span style={{ fontSize: '12px', color: 'var(--success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Check size={14} />
+              {successMsg}
+            </span>
+          )}
+        </div>
 
-        {successMsg && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'var(--success-light)',
-            color: 'var(--success)',
-            border: '1px solid rgba(16, 185, 129, 0.15)',
-            padding: '8px 12px',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: 500,
-            marginBottom: '16px'
-          }}>
-            <Check size={16} />
-            {successMsg}
-          </div>
-        )}
-
-        <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {students.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: '14px' }}>
-              등록된 학생이 없습니다. 왼쪽의 폼을 통해 추가해주세요.
+              등록된 학생이 없습니다. 명단을 등록해주세요.
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
-                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600 }}>학적</th>
-                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600 }}>이름</th>
-                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600 }}>이메일</th>
-                  <th style={{ textAlign: 'center', padding: '10px 8px', width: '60px' }}>관리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((student) => (
-                  <tr key={student.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.03)' }}>
-                    <td style={{ padding: '12px 8px' }}>
-                      {student.grade}-{student.classNum}-{student.number}
-                    </td>
-                    <td style={{ padding: '12px 8px', fontWeight: 600 }}>{student.name}</td>
-                    <td style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontSize: '13px' }}>{student.email}</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'center' }}>
-                      <button
-                        onClick={() => handleDelete(student.id)}
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          color: 'var(--danger)',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          borderRadius: '6px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'var(--transition-fast)'
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--danger-light)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            [...students]
+              .sort((a, b) => {
+                const aKey = `${a.grade.padStart(2, '0')}-${a.classNum.padStart(2, '0')}-${a.number.padStart(3, '0')}`;
+                const bKey = `${b.grade.padStart(2, '0')}-${b.classNum.padStart(2, '0')}-${b.number.padStart(3, '0')}`;
+                return aKey.localeCompare(bKey);
+              })
+              .map((student) => (
+                <div
+                  key={student.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    background: 'rgba(255, 255, 255, 0.4)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: 'var(--radius-md)',
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600 }}>
+                      {student.grade}학년 {student.classNum}반 {student.number}번 {student.name}
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {student.email || '(이메일 없음)'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleDelete(student.id)}
+                    className="btn-icon"
+                    style={{ color: 'var(--danger)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))
           )}
         </div>
       </div>
