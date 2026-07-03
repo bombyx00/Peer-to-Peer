@@ -132,3 +132,22 @@ export const fetchStudentByDetails = async (
     return null;
   }
 };
+
+// 프로젝트를 Supabase DB에서 삭제
+export const deleteProjectFromSupabase = async (projectId: string): Promise<boolean> => {
+  if (!isSupabaseConfigured()) return false;
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/projects?id=eq.${projectId}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Supabase 프로젝트 삭제 실패:', error);
+    return false;
+  }
+};

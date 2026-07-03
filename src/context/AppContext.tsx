@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { mockStorage } from '../services/mockStorage';
 import type { Student, Project, Group, Question, Evaluation } from '../services/mockStorage';
-import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails } from '../services/supabase';
+import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails, deleteProjectFromSupabase } from '../services/supabase';
 import { isGoogleSheetsConfigured, appendEvaluationToSheet } from '../services/sheets';
 import { isGeminiConfigured, generateAIFeedback } from '../services/gemini';
 
@@ -341,6 +341,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updated = projects.filter((p) => p.id !== projectId);
     setProjects(updated);
     mockStorage.saveProjects(updated, email);
+
+    // Cloud Sync: Delete from Supabase DB if configured
+    if (cloudConnected.supabase) {
+      deleteProjectFromSupabase(projectId);
+    }
   };
 
   const toggleProjectStatus = (projectId: string) => {
@@ -348,6 +353,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updated = projects.map((p) => (p.id === projectId ? { ...p, active: !p.active } : p));
     setProjects(updated);
     mockStorage.saveProjects(updated, email);
+
+    // Cloud Sync: Update in Supabase DB if configured
+    if (cloudConnected.supabase) {
+      const targetProj = updated.find((p) => p.id === projectId);
+      if (targetProj) {
+        syncProjectToSupabase(targetProj);
+      }
+    }
   };
 
   const submitEvaluation = async (
