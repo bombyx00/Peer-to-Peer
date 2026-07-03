@@ -175,7 +175,7 @@ export const StudentEvaluation: React.FC = () => {
           <span style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', fontFamily: 'var(--font-joseon)' }}>
             {myGroup.name}
           </span>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-yeongwol)' }}>
+          <h2 style={{ fontSize: '22px', fontFamily: 'var(--font-yeongwol)' }}>
             {me.grade}학년 {me.classNum}반 {me.number}번 {me.name} (본인)
           </h2>
         </div>
@@ -186,7 +186,7 @@ export const StudentEvaluation: React.FC = () => {
 
       {/* Project Title Banner */}
       <div className="glass-panel" style={{ padding: '24px', background: 'var(--primary-light)', border: '1px solid rgba(79, 70, 229, 0.15)' }}>
-        <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: 'var(--primary)', fontFamily: 'var(--font-yeongwol)' }}>
+        <h3 style={{ fontSize: '22px', marginBottom: '8px', color: 'var(--primary)', fontFamily: 'var(--font-yeongwol)' }}>
           {activeProject.title}
         </h3>
         <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
@@ -262,7 +262,7 @@ export const StudentEvaluation: React.FC = () => {
         {selectedTarget ? (
           <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-yeongwol)' }}>
+              <h3 style={{ fontSize: '22px', fontFamily: 'var(--font-yeongwol)' }}>
                 {selectedTarget.name}에 대한 평가 {selectedTarget.id === me.id ? '(자기 평가)' : ''}
               </h3>
               <button
@@ -281,7 +281,7 @@ export const StudentEvaluation: React.FC = () => {
                 return (
                   <div key={q.id} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 700, fontSize: '16px', fontFamily: 'var(--font-yeongwol)' }}>{q.questionText}</span>
+                      <span style={{ fontSize: '18px', fontFamily: 'var(--font-yeongwol)' }}>{q.questionText}</span>
                       {q.required && <span style={{ color: 'var(--danger)', fontSize: '14px' }}>*</span>}
                     </div>
 
@@ -380,7 +380,7 @@ export const StudentEvaluation: React.FC = () => {
           onClick={handleFinalSubmitAll}
           disabled={submitting}
           className="btn btn-primary"
-          style={{ padding: '14px 28px', fontSize: '18px', fontFamily: 'var(--font-yeongwol)', fontWeight: 'bold' }}
+          style={{ padding: '14px 28px', fontSize: '20px', fontFamily: 'var(--font-yeongwol)' }}
         >
           {submitting ? '제출 처리 중...' : '상호평가 최종 제출'}
         </button>

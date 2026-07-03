@@ -61,7 +61,7 @@ const DroppableArea: React.FC<{
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-        <h4 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-yeongwol)' }}>{title}</h4>
+        <h4 style={{ fontSize: '20px', fontFamily: 'var(--font-yeongwol)' }}>{title}</h4>
         <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(0,0,0,0.05)', fontWeight: 600, fontFamily: 'var(--font-joseon)' }}>
           {count}명
         </span>
@@ -261,12 +261,12 @@ export const GroupManager: React.FC = () => {
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
             />
-            <button type="submit" className="btn btn-primary" style={{ padding: '8px 18px', fontSize: '17px', fontFamily: 'var(--font-yeongwol)', fontWeight: 'bold' }}>
+            <button type="submit" className="btn btn-primary" style={{ padding: '8px 18px', fontSize: '19px', fontFamily: 'var(--font-yeongwol)' }}>
               <Plus size={16} /> 모둠 추가
             </button>
           </form>
 
-          <button onClick={autoAllocate} className="btn btn-secondary" style={{ padding: '8px 18px', fontSize: '17px', fontFamily: 'var(--font-yeongwol)', fontWeight: 'bold', background: 'var(--primary-light)', color: 'var(--primary)', border: 'none' }}>
+          <button onClick={autoAllocate} className="btn btn-secondary" style={{ padding: '8px 18px', fontSize: '19px', fontFamily: 'var(--font-yeongwol)', background: 'var(--primary-light)', color: 'var(--primary)', border: 'none' }}>
             <ArrowRightLeft size={14} /> 자동 균등 배정
           </button>
 
@@ -275,9 +275,8 @@ export const GroupManager: React.FC = () => {
             className="btn btn-secondary"
             style={{
               padding: '8px 18px',
-              fontSize: '17px',
+              fontSize: '19px',
               fontFamily: 'var(--font-yeongwol)',
-              fontWeight: 'bold',
               border: '1px solid rgba(239, 68, 68, 0.2)',
               color: 'var(--danger)',
               background: 'transparent',

@@ -128,7 +128,7 @@ export const ProjectCreator: React.FC = () => {
     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px', alignItems: 'start' }}>
       {/* Left side: Create form */}
       <div className="glass-panel" style={{ padding: '28px' }}>
-        <h3 style={{ fontSize: '27px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-yeongwol)' }}>
+        <h3 style={{ fontSize: '29px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-yeongwol)' }}>
           <Settings size={20} color="var(--primary)" />
           {editingProjectId ? '프로젝트 정보 수정' : '새 상호평가 프로젝트 설계'}
         </h3>
@@ -203,7 +203,7 @@ export const ProjectCreator: React.FC = () => {
           {/* Questions designer */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <label style={{ fontSize: '21px', fontWeight: 700, fontFamily: 'var(--font-yeongwol)' }}>평가 문항 설계 ({questions.length})</label>
+              <label style={{ fontSize: '23px', fontFamily: 'var(--font-yeongwol)' }}>평가 문항 설계</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   type="button"
@@ -323,7 +323,7 @@ export const ProjectCreator: React.FC = () => {
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px', fontSize: '20px', fontFamily: 'var(--font-yeongwol)', fontWeight: 'bold' }}>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px', fontSize: '22px', fontFamily: 'var(--font-yeongwol)' }}>
             {editingProjectId ? '프로젝트 정보 수정 완료' : '프로젝트 최종 등록'}
           </button>
         </form>
@@ -332,7 +332,7 @@ export const ProjectCreator: React.FC = () => {
       {/* Right side: Projects list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div className="glass-panel" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>진행 중인 평가 목록</h3>
+          <h3 style={{ fontSize: '26px', marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>진행 중인 평가 목록</h3>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {projects.length === 0 ? (
@@ -352,7 +352,7 @@ export const ProjectCreator: React.FC = () => {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
-                    <h4 style={{ fontSize: '20px', fontWeight: 700, color: proj.active ? 'var(--text-primary)' : 'var(--text-muted)', fontFamily: 'var(--font-yeongwol)' }}>
+                    <h4 style={{ fontSize: '22px', color: proj.active ? 'var(--text-primary)' : 'var(--text-muted)', fontFamily: 'var(--font-yeongwol)' }}>
                       {proj.title}
                     </h4>
                     <span style={{

@@ -192,7 +192,7 @@ export const MonitoringDashboard: React.FC = () => {
         }}>
           <div style={{ flex: 1, minWidth: '280px' }}>
             <span style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 700, letterSpacing: '1px', fontFamily: 'var(--font-joseon)' }}>STUDENT ACCESS INFO</span>
-            <h3 style={{ fontSize: '22px', fontWeight: 800, marginTop: '4px', marginBottom: '8px', fontFamily: 'var(--font-yeongwol)' }}>학생 접속 안내</h3>
+            <h3 style={{ fontSize: '24px', marginTop: '4px', marginBottom: '8px', fontFamily: 'var(--font-yeongwol)' }}>학생 접속 안내</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
               선생님이 이 화면을 빔 프로젝터나 대형 모니터에 띄워주시면, 학생들이 **QR 코드**를 스캔하거나 아래 **인증번호**를 사용해 손쉽게 자기 학적 정보를 넣고 접속할 수 있습니다.
             </p>
@@ -239,7 +239,7 @@ export const MonitoringDashboard: React.FC = () => {
 
       {/* Progress Metrics */}
       <div className="glass-panel" style={{ padding: '24px' }}>
-        <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>평가 제출 현황 통계</h3>
+        <h3 style={{ fontSize: '24px', marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>평가 제출 현황 통계</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
           <div style={{ background: 'white', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(0,0,0,0.03)' }}>
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px', fontFamily: 'var(--font-joseon)' }}>전체 대상 인원</div>
@@ -264,7 +264,7 @@ export const MonitoringDashboard: React.FC = () => {
       {/* Grid: Group Detail Panels */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
         <div className="glass-panel" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>모둠별 세부 제출 현황판</h3>
+          <h3 style={{ fontSize: '24px', marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>모둠별 세부 제출 현황판</h3>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {projectToMonitor.groups.map((group) => {
@@ -272,7 +272,7 @@ export const MonitoringDashboard: React.FC = () => {
               
               return (
                 <div key={group.id} style={{ background: 'rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', padding: '16px', border: '1px solid var(--glass-border)' }}>
-                  <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '12px', color: 'var(--primary)', fontFamily: 'var(--font-yeongwol)' }}>{group.name}</h4>
+                  <h4 style={{ fontSize: '18px', marginBottom: '12px', color: 'var(--primary)', fontFamily: 'var(--font-yeongwol)' }}>{group.name}</h4>
                   
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -349,7 +349,7 @@ export const MonitoringDashboard: React.FC = () => {
 
       {/* AI 피드백 모아보기 표 */}
       <div className="glass-panel" style={{ padding: '24px', marginTop: '24px' }}>
-        <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>AI 종합 서술형 평가 모아보기</h3>
+        <h3 style={{ fontSize: '24px', marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>AI 종합 서술형 평가 모아보기</h3>
         <div style={{ overflowX: 'auto' }}>
           {evaluations.filter((e) => e.projectId === projectToMonitor.id).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)', fontSize: '14px' }}>
