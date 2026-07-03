@@ -169,17 +169,18 @@ export const Login: React.FC = () => {
           <h1 
             onClick={handleTitleClick}
             style={{ 
-              fontSize: '28px', 
+              fontSize: '32px', 
               fontWeight: 800, 
               marginBottom: '8px', 
               letterSpacing: '-0.5px',
               cursor: 'pointer',
-              userSelect: 'none'
+              userSelect: 'none',
+              fontFamily: 'var(--font-yeongwol)'
             }}
           >
             상호평가 시스템
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', fontFamily: 'var(--font-joseon)' }}>
             모둠 활동 상호평가에 오신 것을 환영합니다.
           </p>
         </div>
@@ -210,7 +211,8 @@ export const Login: React.FC = () => {
               transition: 'var(--transition-fast)',
               background: role === 'student' ? 'white' : 'transparent',
               color: role === 'student' ? 'var(--primary)' : 'var(--text-secondary)',
-              boxShadow: role === 'student' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
+              boxShadow: role === 'student' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+              fontFamily: 'var(--font-joseon)'
             }}
           >
             <GraduationCap size={18} />
@@ -234,7 +236,8 @@ export const Login: React.FC = () => {
               transition: 'var(--transition-fast)',
               background: role === 'teacher' ? 'white' : 'transparent',
               color: role === 'teacher' ? 'var(--primary)' : 'var(--text-secondary)',
-              boxShadow: role === 'teacher' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
+              boxShadow: role === 'teacher' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+              fontFamily: 'var(--font-joseon)'
             }}
           >
             <Shield size={18} />
@@ -266,7 +269,7 @@ export const Login: React.FC = () => {
               ) : (
                 <>
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-joseon)' }}>
                       평가 인증번호 (6자리)
                     </label>
                     <input
@@ -279,7 +282,7 @@ export const Login: React.FC = () => {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-joseon)' }}>
                       본인 학적 정보
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
@@ -308,7 +311,7 @@ export const Login: React.FC = () => {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-joseon)' }}>
                       본인 이름
                     </label>
                     <input
@@ -363,7 +366,7 @@ export const Login: React.FC = () => {
           )}
 
           {(role === 'student' || (role === 'teacher' && showDebug)) && (
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px' }}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px', fontFamily: 'var(--font-yeongwol)', fontSize: '17px', fontWeight: 'bold' }}>
               로그인하기
               <ArrowRight size={16} />
             </button>
