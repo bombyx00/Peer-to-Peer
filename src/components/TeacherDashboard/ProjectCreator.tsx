@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { Question } from '../../services/mockStorage';
-import { Plus, Trash2, Calendar, FileText, Settings } from 'lucide-react';
+import { Plus, Trash2, Calendar, FileText, Settings, ChevronUp, ChevronDown } from 'lucide-react';
 
 const getDefaultPlaceholder = (type: 'rating' | 'slider' | 'text') => {
   const defaultTexts = {
@@ -35,6 +35,20 @@ export const ProjectCreator: React.FC = () => {
 
   const removeQuestion = (id: string) => {
     setQuestions(questions.filter((q) => q.id !== id));
+  };
+
+  const moveQuestion = (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === questions.length - 1) return;
+
+    const newQuestions = [...questions];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    const temp = newQuestions[index];
+    newQuestions[index] = newQuestions[targetIndex];
+    newQuestions[targetIndex] = temp;
+
+    setQuestions(newQuestions);
   };
 
   const updateQuestionText = (id: string, text: string) => {
@@ -174,13 +188,52 @@ export const ProjectCreator: React.FC = () => {
                     <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>
                       문항 {idx + 1} - {q.type === 'rating' ? '⭐ 별점 척도' : q.type === 'slider' ? '📊 백분율 슬라이더' : '✍️ 서술형 의견'}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => removeQuestion(q.id)}
-                      style={{ border: 'none', background: 'transparent', color: 'var(--danger)', cursor: 'pointer' }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => moveQuestion(idx, 'up')}
+                        disabled={idx === 0}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          color: idx === 0 ? 'var(--text-muted)' : 'var(--text-secondary)',
+                          cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                          padding: '4px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          opacity: idx === 0 ? 0.3 : 1
+                        }}
+                        title="위로 이동"
+                      >
+                        <ChevronUp size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveQuestion(idx, 'down')}
+                        disabled={idx === questions.length - 1}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          color: idx === questions.length - 1 ? 'var(--text-muted)' : 'var(--text-secondary)',
+                          cursor: idx === questions.length - 1 ? 'not-allowed' : 'pointer',
+                          padding: '4px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          opacity: idx === questions.length - 1 ? 0.3 : 1
+                        }}
+                        title="아래로 이동"
+                      >
+                        <ChevronDown size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeQuestion(q.id)}
+                        style={{ border: 'none', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
+                        title="문항 삭제"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                   
                   <input
