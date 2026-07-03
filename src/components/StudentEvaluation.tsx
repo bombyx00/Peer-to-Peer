@@ -82,13 +82,19 @@ export const StudentEvaluation: React.FC = () => {
     }));
   };
 
-  const handleSaveDraft = (targetId: string) => {
+  const handleSaveDraft = async (targetId: string) => {
     if (!activeProject || !me) return;
     const targetAnswers = drafts[targetId] || {};
     
-    // Save to AppContext (Mock API Storage)
-    submitEvaluation(activeProject.id, me.id, targetId, targetAnswers);
-    showTempMsg(`${students.find((s) => s.id === targetId)?.name} 학생에 대한 평가가 임시 저장되었습니다.`);
+    showTempMsg("저장 중...");
+    try {
+      // Save to AppContext (Mock API Storage + Supabase sync)
+      await submitEvaluation(activeProject.id, me.id, targetId, targetAnswers);
+      showTempMsg(`${students.find((s) => s.id === targetId)?.name} 학생에 대한 평가가 임시 저장되었습니다.`);
+    } catch (err: any) {
+      showTempMsg(`임시 저장 실패: ${err.message || '알 수 없는 오류'}`);
+      alert(`임시 저장에 실패했습니다.\n\n오류 내용:\n${err.message || '알 수 없는 오류'}`);
+    }
   };
 
   const showTempMsg = (msg: string) => {

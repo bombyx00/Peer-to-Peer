@@ -476,7 +476,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 3. Sync to Supabase DB if configured
     if (cloudConnected.supabase) {
-      const success = await submitEvaluationToSupabase({
+      await submitEvaluationToSupabase({
         project_id: projectId,
         evaluator_id: evaluatorId,
         evaluatee_id: evaluateeId,
@@ -484,9 +484,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ai_feedback: aiText,
         submitted_at: new Date().toISOString()
       });
-      if (!success) {
-        alert(`Supabase 클라우드 전송 실패!\n평가자: ${evaluator.name}\n피평가자: ${evaluatee.name}`);
-      }
     }
 
     // 4. Sync to Google Sheets if configured

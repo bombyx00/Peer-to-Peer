@@ -61,22 +61,21 @@ export const syncProjectToSupabase = async (project: any) => {
 
 // 제출된 평가 저장
 export const submitEvaluationToSupabase = async (evaluation: any) => {
-  if (!isSupabaseConfigured()) return false;
-  try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/evaluations`, {
-      method: 'POST',
-      headers: {
-        'apikey': supabaseAnonKey,
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(evaluation)
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('Supabase 평가 제출 실패:', error);
-    return false;
+  if (!isSupabaseConfigured()) throw new Error('Supabase 환경변수가 설정되지 않았습니다.');
+  const response = await fetch(`${supabaseUrl}/rest/v1/evaluations`, {
+    method: 'POST',
+    headers: {
+      'apikey': supabaseAnonKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(evaluation)
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(`Supabase DB 저장 실패 (${response.status}): ${errData.message || response.statusText || '알 수 없는 오류'}`);
   }
+  return true;
 };
 
 // 인증번호로 활성화된 프로젝트 조회
