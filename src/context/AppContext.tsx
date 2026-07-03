@@ -52,6 +52,7 @@ interface AppContextType {
     answers: { [questionId: string]: string | number }
   ) => Promise<void>;
   resetAll: () => void;
+  reloadData: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -102,82 +103,82 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, []);
 
+  const reloadData = async () => {
+    let email = getTeacherEmail();
+    
+    // If user is a student, determine which teacher space they belong to
+    if (!email && user?.role === 'student' && user.currentProjectId) {
+      email = findTeacherEmailByProjectId(user.currentProjectId);
+    }
+    
+    let loadedStudents = mockStorage.getStudents(email);
+    let loadedProjects = mockStorage.getProjects(email);
+    let loadedEvaluations = mockStorage.getEvaluations(email);
+
+    // If Supabase is configured, pull all active data from Cloud DB
+    if (cloudConnected.supabase) {
+      try {
+        const cloudProjs = await fetchAllProjectsFromSupabase();
+        if (cloudProjs.length > 0) {
+          loadedProjects = cloudProjs.map((cp: any) => ({
+            id: cp.id,
+            title: cp.title,
+            description: cp.description,
+            questions: typeof cp.questions === 'string' ? JSON.parse(cp.questions) : cp.questions,
+            selfEvalEnabled: cp.selfEvalEnabled,
+            groups: typeof cp.groups === 'string' ? JSON.parse(cp.groups) : (cp.groups || []),
+            active: cp.active,
+            createdAt: cp.createdAt,
+            accessCode: cp.accessCode,
+          }));
+        }
+
+        const cloudStudents = await fetchAllStudentsFromSupabase();
+        if (cloudStudents.length > 0) {
+          loadedStudents = cloudStudents.map((cs: any) => ({
+            id: cs.id,
+            grade: cs.grade,
+            classNum: cs.classNum,
+            number: cs.number,
+            name: cs.name,
+            email: cs.email,
+          }));
+        }
+
+        const cloudEvals = await fetchAllEvaluationsFromSupabase();
+        if (cloudEvals.length > 0) {
+          loadedEvaluations = cloudEvals.map((ce: any) => ({
+            id: ce.id,
+            projectId: ce.project_id || ce.projectId,
+            evaluatorId: ce.evaluator_id || ce.evaluatorId,
+            evaluateeId: ce.evaluatee_id || ce.evaluateeId,
+            answers: typeof ce.answers === 'string' ? JSON.parse(ce.answers) : ce.answers,
+            aiFeedback: ce.ai_feedback || ce.aiFeedback,
+            submittedAt: ce.submitted_at || ce.submittedAt,
+          }));
+        }
+      } catch (err) {
+        console.error('Supabase 데이터 로드 실패:', err);
+      }
+    }
+
+    // If student user logged in, verify project still exists
+    if (user?.role === 'student' && user.currentProjectId) {
+      const projectExists = loadedProjects.some(p => p.id === user.currentProjectId);
+      if (!projectExists) {
+        logout();
+        return;
+      }
+    }
+
+    setStudents(loadedStudents);
+    setProjects(loadedProjects);
+    setEvaluations(loadedEvaluations);
+  };
+
   // Reload data dynamically whenever user session changes (Data Isolation)
   useEffect(() => {
-    const loadData = async () => {
-      let email = getTeacherEmail();
-      
-      // If user is a student, determine which teacher space they belong to
-      if (!email && user?.role === 'student' && user.currentProjectId) {
-        email = findTeacherEmailByProjectId(user.currentProjectId);
-      }
-      
-      let loadedStudents = mockStorage.getStudents(email);
-      let loadedProjects = mockStorage.getProjects(email);
-      let loadedEvaluations = mockStorage.getEvaluations(email);
-
-      // If Supabase is configured, pull all active data from Cloud DB
-      if (cloudConnected.supabase) {
-        try {
-          const cloudProjs = await fetchAllProjectsFromSupabase();
-          if (cloudProjs.length > 0) {
-            loadedProjects = cloudProjs.map((cp: any) => ({
-              id: cp.id,
-              title: cp.title,
-              description: cp.description,
-              questions: typeof cp.questions === 'string' ? JSON.parse(cp.questions) : cp.questions,
-              selfEvalEnabled: cp.selfEvalEnabled,
-              groups: typeof cp.groups === 'string' ? JSON.parse(cp.groups) : (cp.groups || []),
-              active: cp.active,
-              createdAt: cp.createdAt,
-              accessCode: cp.accessCode,
-            }));
-          }
-
-          const cloudStudents = await fetchAllStudentsFromSupabase();
-          if (cloudStudents.length > 0) {
-            loadedStudents = cloudStudents.map((cs: any) => ({
-              id: cs.id,
-              grade: cs.grade,
-              classNum: cs.classNum,
-              number: cs.number,
-              name: cs.name,
-              email: cs.email,
-            }));
-          }
-
-          const cloudEvals = await fetchAllEvaluationsFromSupabase();
-          if (cloudEvals.length > 0) {
-            loadedEvaluations = cloudEvals.map((ce: any) => ({
-              id: ce.id,
-              projectId: ce.project_id || ce.projectId,
-              evaluatorId: ce.evaluator_id || ce.evaluatorId,
-              evaluateeId: ce.evaluatee_id || ce.evaluateeId,
-              answers: typeof ce.answers === 'string' ? JSON.parse(ce.answers) : ce.answers,
-              aiFeedback: ce.ai_feedback || ce.aiFeedback,
-              submittedAt: ce.submitted_at || ce.submittedAt,
-            }));
-          }
-        } catch (err) {
-          console.error('Supabase 데이터 로드 실패:', err);
-        }
-      }
-
-      // If student user logged in, verify project still exists
-      if (user?.role === 'student' && user.currentProjectId) {
-        const projectExists = loadedProjects.some(p => p.id === user.currentProjectId);
-        if (!projectExists) {
-          logout();
-          return;
-        }
-      }
-
-      setStudents(loadedStudents);
-      setProjects(loadedProjects);
-      setEvaluations(loadedEvaluations);
-    };
-
-    loadData();
+    reloadData();
   }, [user, cloudConnected.supabase]);
 
   const loginAsStudent = (email: string): boolean => {
@@ -533,6 +534,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleProjectStatus,
         submitEvaluation,
         resetAll,
+        reloadData,
       }}
     >
       {children}

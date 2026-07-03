@@ -1,11 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Download, CheckCircle, XCircle, BarChart2 } from 'lucide-react';
+import { Download, CheckCircle, XCircle, BarChart2, RefreshCw } from 'lucide-react';
 
 export const MonitoringDashboard: React.FC = () => {
-  const { students, projects, evaluations, resetAll } = useApp();
+  const { students, projects, evaluations, resetAll, reloadData, cloudConnected } = useApp();
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Background polling for Supabase evaluations in real-time
+  useEffect(() => {
+    if (!cloudConnected.supabase) return;
+
+    const interval = setInterval(() => {
+      reloadData().catch((err) => console.error('실시간 동기화 실패:', err));
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [cloudConnected.supabase]);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await reloadData();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const currentProject = projects.find((p) => p.id === selectedProjectId) || projects[0];
 
@@ -161,6 +184,17 @@ export const MonitoringDashboard: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
+            {cloudConnected.supabase && (
+              <button
+                onClick={handleManualRefresh}
+                className="btn btn-secondary"
+                style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                disabled={isRefreshing}
+              >
+                <RefreshCw size={16} className={isRefreshing ? 'spin' : ''} />
+                {isRefreshing ? '동기화 중...' : '실시간 새로고침'}
+              </button>
+            )}
             <button onClick={handleExportCSV} className="btn btn-primary" style={{ padding: '10px 18px', fontSize: '13px' }}>
               <Download size={16} /> CSV 결과 다운로드
             </button>
