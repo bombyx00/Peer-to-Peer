@@ -377,11 +377,12 @@ export const Login: React.FC = () => {
           borderTop: '1px solid rgba(0,0,0,0.05)',
           display: 'flex',
           justifyContent: 'center',
-          gap: '12px',
+          flexWrap: 'wrap',
+          gap: '8px 12px',
           fontSize: '11px',
           color: 'var(--text-muted)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
             <span style={{
               display: 'inline-block',
               width: '6px',
@@ -391,7 +392,7 @@ export const Login: React.FC = () => {
             }}></span>
             Supabase: {cloudConnected.supabase ? '연동 완료' : '미연동'}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
             <span style={{
               display: 'inline-block',
               width: '6px',
@@ -401,7 +402,7 @@ export const Login: React.FC = () => {
             }}></span>
             Google Sheets: {cloudConnected.sheets ? '연동 완료' : '미연동'}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
             <span style={{
               display: 'inline-block',
               width: '6px',
