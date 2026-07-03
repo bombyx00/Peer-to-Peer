@@ -20,7 +20,9 @@ export const StudentEvaluation: React.FC = () => {
 
   // Initialize Project and Group
   useEffect(() => {
-    const activeProj = projects.find((p) => p.active) || null;
+    const activeProj = projects.find((p) => p.id === user?.currentProjectId) || 
+                       projects.find((p) => p.active) || 
+                       null;
     setActiveProject(activeProj);
 
     if (activeProj && me) {
@@ -41,7 +43,7 @@ export const StudentEvaluation: React.FC = () => {
         }
       }
     }
-  }, [projects, students, me]);
+  }, [projects, students, me, user]);
 
   // Load existing evaluations as initial drafts
   useEffect(() => {
