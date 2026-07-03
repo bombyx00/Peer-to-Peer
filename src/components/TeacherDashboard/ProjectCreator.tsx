@@ -160,7 +160,7 @@ export const ProjectCreator: React.FC = () => {
         
         <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '19px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-yeongwol)' }}>
+            <label style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-joseon)' }}>
               프로젝트 제목
             </label>
             <input
@@ -173,7 +173,7 @@ export const ProjectCreator: React.FC = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '19px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-yeongwol)' }}>
+            <label style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-joseon)' }}>
               설명 및 학생 안내 문구
             </label>
             <textarea
@@ -193,7 +193,7 @@ export const ProjectCreator: React.FC = () => {
               onChange={(e) => setSelfEvalEnabled(e.target.checked)}
               style={{ width: '18px', height: '18px', cursor: 'pointer' }}
             />
-            <label htmlFor="selfEval" style={{ fontSize: '19px', fontWeight: 700, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-yeongwol)' }}>
+            <label htmlFor="selfEval" style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-joseon)' }}>
               자기 평가 포함 (본인 자신에 대한 평가도 문항에 포함하여 제출하도록 설정)
             </label>
           </div>
@@ -209,7 +209,7 @@ export const ProjectCreator: React.FC = () => {
                   type="button"
                   onClick={() => addQuestion('rating')}
                   className="btn btn-secondary"
-                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                  style={{ padding: '6px 12px', fontSize: '13px', fontFamily: 'var(--font-joseon)' }}
                 >
                   <Plus size={14} /> 별점 문항
                 </button>
@@ -217,7 +217,7 @@ export const ProjectCreator: React.FC = () => {
                   type="button"
                   onClick={() => addQuestion('slider')}
                   className="btn btn-secondary"
-                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                  style={{ padding: '6px 12px', fontSize: '13px', fontFamily: 'var(--font-joseon)' }}
                 >
                   <Plus size={14} /> 슬라이더 문항
                 </button>
@@ -225,7 +225,7 @@ export const ProjectCreator: React.FC = () => {
                   type="button"
                   onClick={() => addQuestion('text')}
                   className="btn btn-secondary"
-                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                  style={{ padding: '6px 12px', fontSize: '13px', fontFamily: 'var(--font-joseon)' }}
                 >
                   <Plus size={14} /> 서술 문항
                 </button>
@@ -247,7 +247,7 @@ export const ProjectCreator: React.FC = () => {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', fontFamily: 'var(--font-joseon)' }}>
                       문항 {idx + 1} - {q.type === 'rating' ? '⭐ 별점 척도' : q.type === 'slider' ? '📊 백분율 슬라이더' : '✍️ 서술형 의견'}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -314,7 +314,7 @@ export const ProjectCreator: React.FC = () => {
                       onChange={(e) => updateQuestionRequired(q.id, e.target.checked)}
                       style={{ cursor: 'pointer' }}
                     />
-                    <label htmlFor={`req-${q.id}`} style={{ fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    <label htmlFor={`req-${q.id}`} style={{ fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-joseon)' }}>
                       필수 응답 문항 설정
                     </label>
                   </div>
