@@ -199,7 +199,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Check currently loaded projects first
     matchedProject = projects.find((p) => p.active && p.accessCode === accessCode.trim());
     if (matchedProject) {
-      foundTeacherEmail = getTeacherEmail();
+      foundTeacherEmail = getTeacherEmail() || findTeacherEmailByProjectId(matchedProject.id);
     } else {
       // Search all isolated storage slots
       for (let i = 0; i < localStorage.length; i++) {
