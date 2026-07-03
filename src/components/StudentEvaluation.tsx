@@ -172,21 +172,21 @@ export const StudentEvaluation: React.FC = () => {
       {/* Header */}
       <header className="glass-panel" style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase' }}>
+          <span style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', fontFamily: 'var(--font-joseon)' }}>
             {myGroup.name}
           </span>
-          <h2 style={{ fontSize: '18px', fontWeight: 800 }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-yeongwol)' }}>
             {me.grade}학년 {me.classNum}반 {me.number}번 {me.name} (본인)
           </h2>
         </div>
-        <button onClick={logout} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button onClick={logout} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'var(--font-joseon)' }}>
           <LogOut size={16} /> 로그아웃
         </button>
       </header>
 
       {/* Project Title Banner */}
       <div className="glass-panel" style={{ padding: '24px', background: 'var(--primary-light)', border: '1px solid rgba(79, 70, 229, 0.15)' }}>
-        <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px', color: 'var(--primary)' }}>
+        <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: 'var(--primary)', fontFamily: 'var(--font-yeongwol)' }}>
           {activeProject.title}
         </h3>
         <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
@@ -216,7 +216,7 @@ export const StudentEvaluation: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: '24px', alignItems: 'start' }}>
         {/* Left Side: Targets List */}
         <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', padding: '0 8px 8px 8px', borderBottom: '1px solid var(--glass-border)' }}>
+          <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary)', padding: '0 8px 8px 8px', borderBottom: '1px solid var(--glass-border)', fontFamily: 'var(--font-joseon)' }}>
             평가 대상 모둠원
           </h4>
           {targets.map((target) => {
@@ -262,13 +262,13 @@ export const StudentEvaluation: React.FC = () => {
         {selectedTarget ? (
           <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 800 }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-yeongwol)' }}>
                 {selectedTarget.name}에 대한 평가 {selectedTarget.id === me.id ? '(자기 평가)' : ''}
               </h3>
               <button
                 onClick={() => handleSaveDraft(selectedTarget.id)}
                 className="btn btn-secondary"
-                style={{ padding: '8px 16px', fontSize: '12px' }}
+                style={{ padding: '8px 16px', fontSize: '13px', fontFamily: 'var(--font-joseon)' }}
               >
                 <Save size={14} /> 임시 저장
               </button>
@@ -281,7 +281,7 @@ export const StudentEvaluation: React.FC = () => {
                 return (
                   <div key={q.id} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 700, fontSize: '15px' }}>{q.questionText}</span>
+                      <span style={{ fontWeight: 700, fontSize: '16px', fontFamily: 'var(--font-yeongwol)' }}>{q.questionText}</span>
                       {q.required && <span style={{ color: 'var(--danger)', fontSize: '14px' }}>*</span>}
                     </div>
 
@@ -330,7 +330,7 @@ export const StudentEvaluation: React.FC = () => {
                             {value !== undefined ? value : 50}%
                           </span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)' }}>
                           <span>낮음 (기여 미흡)</span>
                           <span>보통</span>
                           <span>매우 높음 (주도적 기여)</span>
@@ -357,7 +357,7 @@ export const StudentEvaluation: React.FC = () => {
               <button
                 onClick={() => handleSaveDraft(selectedTarget.id)}
                 className="btn btn-secondary"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-joseon)', fontSize: '14px' }}
               >
                 <Save size={16} /> 이 모둠원 평가 임시저장
               </button>
@@ -373,14 +373,14 @@ export const StudentEvaluation: React.FC = () => {
 
       {/* Final Submit Footer */}
       <footer className="glass-panel" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
-        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+        <div style={{ fontSize: '14px', color: 'var(--text-secondary)', fontFamily: 'var(--font-joseon)' }}>
           모든 모둠원에 대한 평가가 작성 및 임시 저장되었는지 반드시 확인한 후 제출해주시기 바랍니다.
         </div>
         <button
           onClick={handleFinalSubmitAll}
           disabled={submitting}
           className="btn btn-primary"
-          style={{ padding: '14px 28px', fontSize: '15px' }}
+          style={{ padding: '14px 28px', fontSize: '18px', fontFamily: 'var(--font-yeongwol)', fontWeight: 'bold' }}
         >
           {submitting ? '제출 처리 중...' : '상호평가 최종 제출'}
         </button>
