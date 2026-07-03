@@ -156,8 +156,8 @@ export const StudentManager: React.FC = () => {
         {/* CSV Upload */}
         <div className="glass-panel" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 600 }}>CSV 명단 일괄 등록</h3>
-            <button onClick={downloadTemplate} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }}>
+            <h3 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-yeongwol)' }}>CSV 명단 일괄 등록</h3>
+            <button onClick={downloadTemplate} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '13px', fontFamily: 'var(--font-joseon)' }}>
               <Download size={14} />
               양식 다운로드
             </button>
@@ -177,7 +177,7 @@ export const StudentManager: React.FC = () => {
               type="button" 
               onClick={triggerFileUpload} 
               className="btn btn-primary" 
-              style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px', padding: '14px 24px' }}
+              style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px', padding: '14px 24px', fontFamily: 'var(--font-yeongwol)', fontSize: '18px', fontWeight: 'bold' }}
             >
               <FileSpreadsheet size={18} />
               엑셀 CSV 파일 업로드하기
@@ -185,14 +185,14 @@ export const StudentManager: React.FC = () => {
 
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0' }}>
               <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)', width: '100%' }} />
-              <span style={{ position: 'absolute', background: 'var(--glass-bg)', padding: '0 12px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              <span style={{ position: 'absolute', background: 'var(--glass-bg)', padding: '0 12px', fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)' }}>
                 또는 직접 텍스트 붙여넣기
               </span>
             </div>
 
             <form onSubmit={handleCsvTextSubmit}>
               <div style={{ marginBottom: '8px' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)' }}>
                   형식: 학년, 반, 번호, 이름, 이메일(선택) (한 줄에 한 명씩 쉼표 구분)
                 </span>
               </div>
@@ -203,7 +203,7 @@ export const StudentManager: React.FC = () => {
                 value={csvText}
                 onChange={(e) => setCsvText(e.target.value)}
               />
-              <button type="submit" className="btn btn-secondary" style={{ width: '100%' }}>
+              <button type="submit" className="btn btn-secondary" style={{ width: '100%', fontFamily: 'var(--font-yeongwol)', fontSize: '17px', fontWeight: 'bold' }}>
                 <Upload size={16} />
                 텍스트 일괄 등록
               </button>
@@ -213,11 +213,11 @@ export const StudentManager: React.FC = () => {
 
         {/* Single Add */}
         <div className="glass-panel" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>개별 학생 등록</h3>
+          <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>개별 학생 등록</h3>
           <form onSubmit={handleSingleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)' }}>
                 학년 / 반 / 번호 입력
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
@@ -246,7 +246,7 @@ export const StudentManager: React.FC = () => {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', fontFamily: 'var(--font-joseon)' }}>
                 이름
               </label>
               <input
@@ -259,7 +259,7 @@ export const StudentManager: React.FC = () => {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', fontFamily: 'var(--font-joseon)' }}>
                 구글 이메일 주소 (선택)
               </label>
               <input
@@ -271,7 +271,7 @@ export const StudentManager: React.FC = () => {
               />
             </div>
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '4px' }}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '4px', fontFamily: 'var(--font-yeongwol)', fontSize: '18px', fontWeight: 'bold' }}>
               <UserPlus size={16} />
               학생 추가
             </button>
@@ -282,7 +282,7 @@ export const StudentManager: React.FC = () => {
       {/* Right side: Students List */}
       <div className="glass-panel" style={{ padding: '24px', maxHeight: '720px', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h3 style={{ fontSize: '18px', fontWeight: 600 }}>등록된 학생 명단 ({students.length}명)</h3>
+          <h3 style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-yeongwol)' }}>등록된 학생 명단 ({students.length}명)</h3>
           {successMsg && (
             <span style={{ fontSize: '12px', color: 'var(--success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Check size={14} />
@@ -317,10 +317,10 @@ export const StudentManager: React.FC = () => {
                   }}
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 600 }}>
+                    <span style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-joseon)' }}>
                       {student.grade}학년 {student.classNum}반 {student.number}번 {student.name}
                     </span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)' }}>
                       {student.email || '(이메일 없음)'}
                     </span>
                   </div>
