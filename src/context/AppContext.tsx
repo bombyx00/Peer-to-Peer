@@ -449,7 +449,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const evaluatee = students.find(s => s.id === evaluateeId);
     const projectObj = projects.find(p => p.id === projectId);
 
-    if (!evaluator || !evaluatee || !projectObj) return;
+    if (!evaluator || !evaluatee || !projectObj) {
+      alert(`평가 데이터 누락 감지!\n- 평가자: ${evaluator ? '찾음' : '못찾음'}\n- 피평가자: ${evaluatee ? '찾음' : '못찾음'}\n- 프로젝트: ${projectObj ? '찾음' : '못찾음'}`);
+      return;
+    }
 
     // 1. Generate AI Feedback (Gemini API or Local rule based)
     const aiText = await generateAIFeedback(
@@ -473,7 +476,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 3. Sync to Supabase DB if configured
     if (cloudConnected.supabase) {
-      await submitEvaluationToSupabase({
+      const success = await submitEvaluationToSupabase({
         project_id: projectId,
         evaluator_id: evaluatorId,
         evaluatee_id: evaluateeId,
@@ -481,6 +484,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ai_feedback: aiText,
         submitted_at: new Date().toISOString()
       });
+      if (!success) {
+        alert(`Supabase 클라우드 전송 실패!\n평가자: ${evaluator.name}\n피평가자: ${evaluatee.name}`);
+      }
     }
 
     // 4. Sync to Google Sheets if configured
