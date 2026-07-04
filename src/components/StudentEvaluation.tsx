@@ -129,8 +129,7 @@ export const StudentEvaluation: React.FC = () => {
       Promise.all(submitPromises)
         .then(() => {
           setSubmitting(false);
-          alert('모든 상호평가 제출이 성공적으로 완료되었습니다. 수고하셨습니다!');
-          logout();
+          alert('모든 상호평가 제출이 성공적으로 완료되었습니다! 제출된 내용은 언제든지 다시 수정할 수 있습니다.');
         })
         .catch((err) => {
           setSubmitting(false);
@@ -176,6 +175,15 @@ export const StudentEvaluation: React.FC = () => {
     );
   }
 
+  const isAllSubmitted = targets.length > 0 && targets.every((target) => 
+    evaluations.some(
+      (e) =>
+        e.projectId === activeProject?.id &&
+        e.evaluatorId === me.id &&
+        e.evaluateeId === target.id
+    )
+  );
+
   const selectedTarget = targets.find((t) => t.id === selectedTargetId);
   const selectedAnswers = drafts[selectedTargetId] || {};
 
@@ -205,6 +213,26 @@ export const StudentEvaluation: React.FC = () => {
           {activeProject.description || '모둠원들의 협동심과 책임감, 기여도를 객관적이고 성실하게 평가해주세요.'}
         </p>
       </div>
+
+      {isAllSubmitted && (
+        <div className="glass-panel" style={{
+          padding: '16px 20px',
+          background: 'rgba(16, 185, 129, 0.08)',
+          border: '1px solid rgba(16, 185, 129, 0.25)',
+          color: '#047857',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          borderRadius: '12px'
+        }}>
+          <h4 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+            <CheckCircle size={18} /> 모든 모둠원 평가 제출 완료 (제출 정보 보관됨)
+          </h4>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
+            이미 모든 평가의 최종 제출을 마치셨습니다. 내용을 수정하고 싶으시다면 언제든지 문항 응답을 변경하신 후 하단의 **[상호평가 최종 제출]** 버튼을 다시 눌러주시면 덮어쓰기됩니다.
+          </p>
+        </div>
+      )}
 
       {submittedMessage && (
         <div style={{

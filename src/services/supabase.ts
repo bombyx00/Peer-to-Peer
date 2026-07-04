@@ -259,6 +259,33 @@ export const fetchEvaluationsFromSupabase = async (projectId: string, evaluatorI
   }
 };
 
+// 특정 평가 레코드 삭제 (중복 방지 및 Upsert 지원용)
+export const deleteEvaluationFromSupabase = async (
+  projectId: string,
+  evaluatorId: string,
+  evaluateeId: string
+): Promise<boolean> => {
+  if (!isSupabaseConfigured()) return false;
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/evaluations?project_id=eq.${projectId}&evaluator_id=eq.${evaluatorId}&evaluatee_id=eq.${evaluateeId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    return response.ok;
+  } catch (error) {
+    console.error('Supabase 평가 삭제 실패:', error);
+    return false;
+  }
+};
+
+
 // Supabase DB에 저장된 전체 프로젝트 조회
 export const fetchAllProjectsFromSupabase = async (): Promise<any[]> => {
   if (!isSupabaseConfigured()) return [];

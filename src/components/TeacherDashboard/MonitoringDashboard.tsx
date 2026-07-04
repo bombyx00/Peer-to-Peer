@@ -3,20 +3,30 @@ import { useApp } from '../../context/AppContext';
 import { Download, CheckCircle, XCircle, BarChart2, RefreshCw } from 'lucide-react';
 
 export const MonitoringDashboard: React.FC = () => {
-  const { students, projects, evaluations, resetAll, reloadData, cloudConnected } = useApp();
+  const { students, projects, evaluations, resetAll, reloadData, cloudConnected, generateAndSaveAITotalFeedback } = useApp();
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [generatingAIs, setGeneratingAIs] = useState<{ [studentId: string]: boolean }>({});
 
-  // Background polling for Supabase evaluations in real-time
+  // Background polling and local storage sync for real-time reactivity
   useEffect(() => {
-    if (!cloudConnected.supabase) return;
+    const handleStorageChange = () => {
+      reloadData().catch((err) => console.error('실시간 로컬 갱신 실패:', err));
+    };
+    window.addEventListener('storage', handleStorageChange);
 
-    const interval = setInterval(() => {
-      reloadData().catch((err) => console.error('실시간 동기화 실패:', err));
-    }, 5000);
+    let interval: any = null;
+    if (cloudConnected.supabase) {
+      interval = setInterval(() => {
+        reloadData().catch((err) => console.error('실시간 동기화 실패:', err));
+      }, 1500); // 1.5s interval for fast reactivity
+    }
 
-    return () => clearInterval(interval);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      if (interval) clearInterval(interval);
+    };
   }, [cloudConnected.supabase]);
 
   const handleManualRefresh = async () => {
@@ -28,6 +38,59 @@ export const MonitoringDashboard: React.FC = () => {
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  const handleGenerateTotalFeedback = async (studentId: string) => {
+    if (!projectToMonitor) return;
+    
+    // 이 학생이 속한 모둠 정보와 모둠원 수 구하기
+    const group = getGroupOfStudent(studentId);
+    if (!group) return;
+    
+    // 모둠원 중 이 학생을 평가한 사람 수(자기평가 포함 여부 확인)
+    const totalRequired = projectToMonitor.selfEvalEnabled ? group.memberIds.length : group.memberIds.length - 1;
+    
+    // 실제 제출된 평가 수 (AI_SUMMARY 제외)
+    const actualSubmits = evaluations.filter(
+      (e) => e.projectId === projectToMonitor.id && e.evaluateeId === studentId && e.evaluatorId !== 'AI_SUMMARY'
+    ).length;
+
+    // 만약 대부분 제출하지 않았다면 컨펌
+    if (actualSubmits < Math.ceil(totalRequired * 0.7)) {
+      if (!confirm(`해당 학생에 대한 동료들의 평가 제출율이 낮습니다. (${actualSubmits}/${totalRequired}명 제출)\n정말 AI 종합 총평을 생성하시겠습니까?`)) {
+        return;
+      }
+    }
+
+    setGeneratingAIs(prev => ({ ...prev, [studentId]: true }));
+    try {
+      await generateAndSaveAITotalFeedback(projectToMonitor.id, studentId);
+      alert(`${students.find(s => s.id === studentId)?.name} 학생의 AI 종합 총평이 완성되었습니다.`);
+    } catch (err: any) {
+      console.error(err);
+      alert(`AI 총평 생성 중 오류 발생: ${err.message || err}`);
+    } finally {
+      setGeneratingAIs(prev => ({ ...prev, [studentId]: false }));
+    }
+  };
+
+  const handleGenerateGroupTotalFeedback = async (groupId: string, memberIds: string[]) => {
+    if (!projectToMonitor) return;
+    const groupName = projectToMonitor.groups.find(g => g.id === groupId)?.name || '모둠';
+    if (!confirm(`[${groupName}]의 모든 학생(${memberIds.length}명)에 대한 AI 종합 총평을 순차적으로 생성하시겠습니까?`)) return;
+
+    // 각 멤버에 대해 순차적으로 생성
+    for (const memberId of memberIds) {
+      setGeneratingAIs(prev => ({ ...prev, [memberId]: true }));
+      try {
+        await generateAndSaveAITotalFeedback(projectToMonitor.id, memberId);
+      } catch (err) {
+        console.error(`${memberId} AI 생성 실패:`, err);
+      } finally {
+        setGeneratingAIs(prev => ({ ...prev, [memberId]: false }));
+      }
+    }
+    alert('모둠 내 모든 학생의 AI 종합 총평 생성이 완료되었습니다.');
   };
 
   const currentProject = projects.find((p) => p.id === selectedProjectId) || projects[0];
@@ -102,7 +165,7 @@ export const MonitoringDashboard: React.FC = () => {
     const csvRows = [headers.join(',')];
 
     evaluations
-      .filter((e) => e.projectId === currentProject.id)
+      .filter((e) => e.projectId === currentProject.id && e.evaluatorId !== 'AI_SUMMARY')
       .forEach((evalItem) => {
         const evaluator = students.find((s) => s.id === evalItem.evaluatorId);
         const evaluatee = students.find((s) => s.id === evalItem.evaluateeId);
@@ -120,7 +183,11 @@ export const MonitoringDashboard: React.FC = () => {
             return val !== undefined ? `"${String(val).replace(/"/g, '""')}"` : '';
           });
 
-          const aiText = evalItem.aiFeedback ? `"${evalItem.aiFeedback.replace(/"/g, '""')}"` : '""';
+          // 피평가자 학생의 AI 종합 총평을 찾아 CSV에 매핑
+          const aiSummaryEval = evaluations.find(
+            (e) => e.projectId === currentProject.id && e.evaluateeId === evaluatee.id && e.evaluatorId === 'AI_SUMMARY'
+          );
+          const aiText = aiSummaryEval?.aiFeedback ? `"${aiSummaryEval.aiFeedback.replace(/"/g, '""')}"` : '""';
 
           const row = [
             evaluator.grade,
@@ -306,7 +373,16 @@ export const MonitoringDashboard: React.FC = () => {
               
               return (
                 <div key={group.id} style={{ background: 'rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', padding: '16px', border: '1px solid var(--glass-border)' }}>
-                  <h4 style={{ fontSize: '18px', marginBottom: '12px', color: 'var(--primary)', fontFamily: 'var(--font-yeongwol)' }}>{group.name}</h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <h4 style={{ fontSize: '18px', color: 'var(--primary)', fontFamily: 'var(--font-yeongwol)', margin: 0 }}>{group.name}</h4>
+                    <button
+                      onClick={() => handleGenerateGroupTotalFeedback(group.id, group.memberIds)}
+                      className="btn btn-secondary"
+                      style={{ padding: '6px 12px', fontSize: '12px', fontFamily: 'var(--font-joseon)' }}
+                    >
+                      모둠 AI 종합 총평 일괄 생성
+                    </button>
+                  </div>
                   
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -327,7 +403,17 @@ export const MonitoringDashboard: React.FC = () => {
                           return (
                             <tr key={evaluator.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
                               <td style={{ padding: '10px 8px', fontWeight: 600, fontFamily: 'var(--font-joseon)', fontSize: '14px' }}>
-                                {evaluator.grade}-{evaluator.classNum}-{evaluator.number} {evaluator.name}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <span>{evaluator.grade}-{evaluator.classNum}-{evaluator.number} {evaluator.name}</span>
+                                  <button
+                                    onClick={() => handleGenerateTotalFeedback(evaluator.id)}
+                                    disabled={generatingAIs[evaluator.id]}
+                                    className="btn btn-secondary"
+                                    style={{ padding: '2px 8px', fontSize: '11px', fontFamily: 'var(--font-joseon)', height: '24px', whiteSpace: 'nowrap' }}
+                                  >
+                                    {generatingAIs[evaluator.id] ? '생성 중...' : 'AI 종합 총평'}
+                                  </button>
+                                </div>
                               </td>
                               <td style={{ padding: '10px 8px', textAlign: 'center' }}>
                                 {isDone ? (
@@ -385,49 +471,71 @@ export const MonitoringDashboard: React.FC = () => {
       <div className="glass-panel" style={{ padding: '24px', marginTop: '24px' }}>
         <h3 style={{ fontSize: '24px', marginBottom: '16px', fontFamily: 'var(--font-yeongwol)' }}>AI 종합 서술형 평가 모아보기</h3>
         <div style={{ overflowX: 'auto' }}>
-          {evaluations.filter((e) => e.projectId === projectToMonitor.id).length === 0 ? (
+          {students.filter((s) => getGroupOfStudent(s.id)).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)', fontSize: '14px' }}>
-              아직 제출된 평가 결과가 없어 AI 서평이 생성되지 않았습니다.
+              프로젝트에 배정된 학생이 없습니다.
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
-                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600, width: '150px', fontFamily: 'var(--font-joseon)' }}>평가자</th>
-                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600, width: '150px', fontFamily: 'var(--font-joseon)' }}>피평가자</th>
-                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600, fontFamily: 'var(--font-joseon)' }}>생성된 AI 서술형 피드백</th>
-                  <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 600, width: '150px', fontFamily: 'var(--font-joseon)' }}>작성 일시</th>
+                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600, width: '180px', fontFamily: 'var(--font-joseon)' }}>대상 학생</th>
+                  <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 600, width: '130px', fontFamily: 'var(--font-joseon)' }}>상호평가 제출 현황</th>
+                  <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600, fontFamily: 'var(--font-joseon)' }}>생성된 AI 종합 총평</th>
+                  <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 600, width: '160px', fontFamily: 'var(--font-joseon)' }}>최근 작성 일시</th>
+                  <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 600, width: '130px', fontFamily: 'var(--font-joseon)' }}>총평 관리</th>
                 </tr>
               </thead>
               <tbody>
-                {evaluations
-                  .filter((e) => e.projectId === projectToMonitor.id)
-                  .map((evalItem) => {
-                    const evaluator = students.find((s) => s.id === evalItem.evaluatorId);
-                    const evaluatee = students.find((s) => s.id === evalItem.evaluateeId);
-                    
-                    // Only show evaluations for students currently in the same group
-                    if (evaluator && evaluatee) {
-                      const evalGroup = getGroupOfStudent(evaluator.id);
-                      const evaleeGroup = getGroupOfStudent(evaluatee.id);
-                      if (!evalGroup || !evaleeGroup || evalGroup.id !== evaleeGroup.id) {
-                        return null; // Skip mismatching group feedback
-                      }
-                    }
+                {students
+                  .filter((s) => getGroupOfStudent(s.id))
+                  .map((student) => {
+                    const group = getGroupOfStudent(student.id);
+                    if (!group) return null;
+
+                    // 이 학생이 받은 평가 수 (AI_SUMMARY 제외)
+                    const receivedCount = evaluations.filter(
+                      (e) => e.projectId === projectToMonitor.id && e.evaluateeId === student.id && e.evaluatorId !== 'AI_SUMMARY'
+                    ).length;
+                    const totalRequired = projectToMonitor.selfEvalEnabled ? group.memberIds.length : group.memberIds.length - 1;
+
+                    // 이 학생의 AI 종합 총평 레코드 찾기
+                    const aiSummaryEval = evaluations.find(
+                      (e) => e.projectId === projectToMonitor.id && e.evaluateeId === student.id && e.evaluatorId === 'AI_SUMMARY'
+                    );
 
                     return (
-                      <tr key={evalItem.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
+                      <tr key={student.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
                         <td style={{ padding: '12px 8px', fontWeight: 600, fontFamily: 'var(--font-joseon)' }}>
-                          {evaluator ? `${evaluator.name} (${evaluator.grade}학년 ${evaluator.classNum}반)` : '알 수 없음'}
+                          <div>{student.name} ({student.grade}학년 {student.classNum}반)</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400, marginTop: '2px' }}>{group.name}</div>
                         </td>
-                        <td style={{ padding: '12px 8px', fontWeight: 600, color: 'var(--primary)', fontFamily: 'var(--font-joseon)' }}>
-                          {evaluatee ? `${evaluatee.name} (${evaluatee.grade}학년 ${evaluatee.classNum}반)` : '알 수 없음'}
+                        <td style={{ padding: '12px 8px', textAlign: 'center', fontFamily: 'var(--font-joseon)', fontWeight: 600 }}>
+                          <span style={{ color: receivedCount === totalRequired ? 'var(--success)' : 'var(--warning)', fontSize: '13px' }}>
+                            {receivedCount} / {totalRequired}명 완료
+                          </span>
                         </td>
                         <td style={{ padding: '12px 8px', color: 'var(--text-secondary)', lineHeight: '1.5', fontFamily: 'var(--font-joseon)' }}>
-                          {evalItem.aiFeedback || '피드백 생성 중...'}
+                          {aiSummaryEval ? (
+                            aiSummaryEval.aiFeedback
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '12px' }}>
+                              상호평가 완료 후 우측 버튼을 눌러 AI 종합 총평을 생성해주세요.
+                            </span>
+                          )}
                         </td>
                         <td style={{ padding: '12px 8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', fontFamily: 'var(--font-joseon)' }}>
-                          {new Date(evalItem.submittedAt).toLocaleString('ko-KR')}
+                          {aiSummaryEval ? new Date(aiSummaryEval.submittedAt).toLocaleString('ko-KR') : '-'}
+                        </td>
+                        <td style={{ padding: '12px 8px', textAlign: 'center' }}>
+                          <button
+                            onClick={() => handleGenerateTotalFeedback(student.id)}
+                            disabled={generatingAIs[student.id]}
+                            className="btn btn-primary"
+                            style={{ padding: '6px 12px', fontSize: '11px', fontFamily: 'var(--font-joseon)', width: '90px' }}
+                          >
+                            {generatingAIs[student.id] ? '생성 중...' : aiSummaryEval ? '총평 재생성' : '총평 생성'}
+                          </button>
                         </td>
                       </tr>
                     );

@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { mockStorage } from '../services/mockStorage';
 import type { Student, Project, Group, Question, Evaluation } from '../services/mockStorage';
-import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails, deleteProjectFromSupabase, clearAllCloudData, fetchAllStudentsFromSupabase, fetchAllProjectsFromSupabase, fetchAllEvaluationsFromSupabase } from '../services/supabase';
+import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails, deleteProjectFromSupabase, clearAllCloudData, fetchAllStudentsFromSupabase, fetchAllProjectsFromSupabase, fetchAllEvaluationsFromSupabase, deleteEvaluationFromSupabase } from '../services/supabase';
 import { isGoogleSheetsConfigured, appendEvaluationToSheet } from '../services/sheets';
-import { isGeminiConfigured, generateAIFeedback } from '../services/gemini';
+import { isGeminiConfigured, generateComprehensiveAIFeedback } from '../services/gemini';
 
 interface User {
   role: 'teacher' | 'student';
@@ -51,6 +51,7 @@ interface AppContextType {
     evaluateeId: string,
     answers: { [questionId: string]: string | number }
   ) => Promise<void>;
+  generateAndSaveAITotalFeedback: (projectId: string, evaluateeId: string) => Promise<void>;
   resetAll: () => void;
   reloadData: () => Promise<void>;
 }
@@ -94,13 +95,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return undefined;
   };
 
-  // Check cloud connection only on mount
+  // Check cloud connection and register storage listener
   useEffect(() => {
     setCloudConnected({
       supabase: isSupabaseConfigured(),
       sheets: isGoogleSheetsConfigured(),
       gemini: isGeminiConfigured()
     });
+
+    const handleStorageChange = () => {
+      reloadData().catch((err) => console.error('Storage 리로드 실패:', err));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const reloadData = async () => {
@@ -455,14 +465,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    // 1. Generate AI Feedback (Gemini API or Local rule based)
-    const aiText = await generateAIFeedback(
-      projectObj.title,
-      projectObj.questions,
-      evaluator.name,
-      evaluatee.name,
-      answers
-    );
+    // 1. 실시간 개별 AI 피드백 생성은 생략합니다. (교사가 일괄 종합 총평 생성)
+    const aiText = '';
 
     // 2. Save locally with AI Feedback into the correct isolated space
     mockStorage.saveEvaluation({
@@ -475,8 +479,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     setEvaluations(mockStorage.getEvaluations(targetTeacherEmail));
 
-    // 3. Sync to Supabase DB if configured
+    // 3. Sync to Supabase DB if configured (중복 방지를 위해 삭제 후 삽입)
     if (cloudConnected.supabase) {
+      await deleteEvaluationFromSupabase(projectId, evaluatorId, evaluateeId);
       await submitEvaluationToSupabase({
         project_id: projectId,
         evaluator_id: evaluatorId,
@@ -494,6 +499,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         evaluatorName: `${evaluator.grade}학년 ${evaluator.classNum}반 ${evaluator.name}`,
         evaluateeName: `${evaluatee.grade}학년 ${evaluatee.classNum}반 ${evaluatee.name}`,
         answers: [...mappedAnswers, aiText],
+        submittedAt: new Date().toLocaleString('ko-KR')
+      });
+    }
+  };
+
+  const generateAndSaveAITotalFeedback = async (projectId: string, evaluateeId: string) => {
+    let targetTeacherEmail = getTeacherEmail();
+    if (!targetTeacherEmail) {
+      targetTeacherEmail = findTeacherEmailByProjectId(projectId);
+    }
+
+    const projectObj = projects.find(p => p.id === projectId);
+    const evaluatee = students.find(s => s.id === evaluateeId);
+    if (!projectObj || !evaluatee) return;
+
+    // 해당 프로젝트의 해당 피평가자에 대한 모든 평가 수집 (자기 평가 및 동료 평가 포함, evaluatorId가 'AI_SUMMARY' 인 것은 제외)
+    // Supabase 데이터와 로컬 데이터 갱신을 확실히 하기 위해 전체 평가 리스트 필터링
+    const targetEvals = evaluations.filter(
+      (e) => e.projectId === projectId && e.evaluateeId === evaluateeId && e.evaluatorId !== 'AI_SUMMARY'
+    );
+
+    // AI 종합 총평 생성 (자기 평가와 동료 평가를 구분하여 감안)
+    const aiTotalText = await generateComprehensiveAIFeedback(
+      projectObj.title,
+      projectObj.questions,
+      evaluatee.name,
+      targetEvals,
+      students
+    );
+
+    // AI_SUMMARY 라는 가상의 평가자로 결과를 evaluations에 저장
+    mockStorage.saveEvaluation({
+      projectId,
+      evaluatorId: 'AI_SUMMARY',
+      evaluateeId,
+      answers: {},
+      aiFeedback: aiTotalText
+    }, targetTeacherEmail);
+
+    setEvaluations(mockStorage.getEvaluations(targetTeacherEmail));
+
+    // Supabase DB 동기화
+    if (cloudConnected.supabase) {
+      // 중복 방지를 위해 삭제 먼저 수행
+      await deleteEvaluationFromSupabase(projectId, 'AI_SUMMARY', evaluateeId);
+      await submitEvaluationToSupabase({
+        project_id: projectId,
+        evaluator_id: 'AI_SUMMARY',
+        evaluatee_id: evaluateeId,
+        answers: JSON.stringify({}),
+        ai_feedback: aiTotalText,
+        submitted_at: new Date().toISOString()
+      });
+    }
+
+    // Google Sheets 동기화
+    if (cloudConnected.sheets) {
+      appendEvaluationToSheet({
+        evaluatorName: 'AI 종합 시스템',
+        evaluateeName: `${evaluatee.grade}학년 ${evaluatee.classNum}반 ${evaluatee.name}`,
+        answers: [...projectObj.questions.map(() => ''), aiTotalText],
         submittedAt: new Date().toLocaleString('ko-KR')
       });
     }
@@ -533,6 +599,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteProject,
         toggleProjectStatus,
         submitEvaluation,
+        generateAndSaveAITotalFeedback,
         resetAll,
         reloadData,
       }}
