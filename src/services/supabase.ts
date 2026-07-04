@@ -13,14 +13,19 @@ export const isSupabaseConfigured = () => {
 };
 
 // 학생 데이터를 DB에 동기화
-export const syncStudentsToSupabase = async (students: any[]) => {
+export const syncStudentsToSupabase = async (students: any[], teacherEmail: string) => {
   if (!isSupabaseConfigured()) {
     console.warn('Supabase 환경변수가 설정되지 않아 로컬 모드로 동작합니다.');
     return false;
   }
   
   try {
-    // 예시: API Fetch 호출
+    // 각 학생 레코드에 teacher_email 필드를 명시적으로 바인딩
+    const studentsWithEmail = students.map(s => ({
+      ...s,
+      teacher_email: teacherEmail
+    }));
+
     const response = await fetch(`${supabaseUrl}/rest/v1/students`, {
       method: 'POST',
       headers: {
@@ -29,7 +34,7 @@ export const syncStudentsToSupabase = async (students: any[]) => {
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates'
       },
-      body: JSON.stringify(students)
+      body: JSON.stringify(studentsWithEmail)
     });
     return response.ok;
   } catch (error) {
@@ -39,9 +44,15 @@ export const syncStudentsToSupabase = async (students: any[]) => {
 };
 
 // 프로젝트 및 모둠 정보 동기화
-export const syncProjectToSupabase = async (project: any) => {
+export const syncProjectToSupabase = async (project: any, teacherEmail: string) => {
   if (!isSupabaseConfigured()) return false;
   try {
+    // 프로젝트 레코드에 teacher_email 필드를 명시적으로 바인딩
+    const projectWithEmail = {
+      ...project,
+      teacher_email: teacherEmail
+    };
+
     const response = await fetch(`${supabaseUrl}/rest/v1/projects`, {
       method: 'POST',
       headers: {
@@ -50,7 +61,7 @@ export const syncProjectToSupabase = async (project: any) => {
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates'
       },
-      body: JSON.stringify(project)
+      body: JSON.stringify(projectWithEmail)
     });
     return response.ok;
   } catch (error) {
@@ -212,11 +223,11 @@ export const fetchProjectById = async (projectId: string): Promise<any | null> =
   }
 };
 
-// Supabase DB에 저장된 전체 학생 명단 조회
-export const fetchAllStudentsFromSupabase = async (): Promise<any[]> => {
+// Supabase DB에 저장된 전체 학생 명단 조회 (교사 이메일 필터링 추가)
+export const fetchAllStudentsFromSupabase = async (teacherEmail: string): Promise<any[]> => {
   if (!isSupabaseConfigured()) return [];
   try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/students`, {
+    const response = await fetch(`${supabaseUrl}/rest/v1/students?teacher_email=eq.${encodeURIComponent(teacherEmail)}`, {
       method: 'GET',
       headers: {
         'apikey': supabaseAnonKey,
@@ -286,11 +297,11 @@ export const deleteEvaluationFromSupabase = async (
 };
 
 
-// Supabase DB에 저장된 전체 프로젝트 조회
-export const fetchAllProjectsFromSupabase = async (): Promise<any[]> => {
+// Supabase DB에 저장된 전체 프로젝트 조회 (교사 이메일 필터링 추가)
+export const fetchAllProjectsFromSupabase = async (teacherEmail: string): Promise<any[]> => {
   if (!isSupabaseConfigured()) return [];
   try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/projects`, {
+    const response = await fetch(`${supabaseUrl}/rest/v1/projects?teacher_email=eq.${encodeURIComponent(teacherEmail)}`, {
       method: 'GET',
       headers: {
         'apikey': supabaseAnonKey,
@@ -308,11 +319,11 @@ export const fetchAllProjectsFromSupabase = async (): Promise<any[]> => {
   }
 };
 
-// Supabase DB에 저장된 전체 평가 리스트 조회
-export const fetchAllEvaluationsFromSupabase = async (): Promise<any[]> => {
+// Supabase DB에 저장된 전체 평가 리스트 조회 (교사 이메일 필터링 추가)
+export const fetchAllEvaluationsFromSupabase = async (teacherEmail: string): Promise<any[]> => {
   if (!isSupabaseConfigured()) return [];
   try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/evaluations`, {
+    const response = await fetch(`${supabaseUrl}/rest/v1/evaluations?teacher_email=eq.${encodeURIComponent(teacherEmail)}`, {
       method: 'GET',
       headers: {
         'apikey': supabaseAnonKey,

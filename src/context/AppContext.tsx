@@ -121,6 +121,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       email = findTeacherEmailByProjectId(user.currentProjectId);
     }
     
+    // 이메일이 없는 경우 (로그아웃 상태 또는 격리 공간을 찾지 못한 경우) 데이터 조회 방지 및 리셋
+    if (!email) {
+      setStudents([]);
+      setProjects([]);
+      setEvaluations([]);
+      return;
+    }
+    
     let loadedStudents = mockStorage.getStudents(email);
     let loadedProjects = mockStorage.getProjects(email);
     let loadedEvaluations = mockStorage.getEvaluations(email);
@@ -128,7 +136,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // If Supabase is configured, pull all active data from Cloud DB
     if (cloudConnected.supabase) {
       try {
-        const cloudProjs = await fetchAllProjectsFromSupabase();
+        const cloudProjs = await fetchAllProjectsFromSupabase(email);
         if (cloudProjs.length > 0) {
           loadedProjects = cloudProjs.map((cp: any) => ({
             id: cp.id,
@@ -143,7 +151,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }));
         }
 
-        const cloudStudents = await fetchAllStudentsFromSupabase();
+        const cloudStudents = await fetchAllStudentsFromSupabase(email);
         if (cloudStudents.length > 0) {
           loadedStudents = cloudStudents.map((cs: any) => ({
             id: cs.id,
@@ -155,7 +163,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }));
         }
 
-        const cloudEvals = await fetchAllEvaluationsFromSupabase();
+        const cloudEvals = await fetchAllEvaluationsFromSupabase(email);
         if (cloudEvals.length > 0) {
           loadedEvaluations = cloudEvals.map((ce: any) => ({
             id: ce.id,
@@ -336,6 +344,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = () => {
     setUser(null);
+    setStudents([]);
+    setProjects([]);
+    setEvaluations([]);
     localStorage.removeItem('peer_eval_current_user');
   };
 
@@ -345,8 +356,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     mockStorage.saveStudents(newStudents, email);
     
     // Cloud Sync if configured
-    if (cloudConnected.supabase) {
-      syncStudentsToSupabase(newStudents);
+    if (cloudConnected.supabase && email) {
+      syncStudentsToSupabase(newStudents, email);
     }
   };
 
@@ -374,8 +385,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     mockStorage.saveProjects(updated, email);
 
     // Cloud Sync if configured
-    if (cloudConnected.supabase) {
-      syncProjectToSupabase(newProject);
+    if (cloudConnected.supabase && email) {
+      syncProjectToSupabase(newProject, email);
     }
   };
 
@@ -394,10 +405,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     mockStorage.saveProjects(updated, email);
 
     // Cloud Sync if configured
-    if (cloudConnected.supabase) {
+    if (cloudConnected.supabase && email) {
       const targetProj = updated.find((p) => p.id === projectId);
       if (targetProj) {
-        syncProjectToSupabase(targetProj);
+        syncProjectToSupabase(targetProj, email);
       }
     }
   };
@@ -409,10 +420,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     mockStorage.saveProjects(updated, email);
 
     // Cloud Sync if configured
-    if (cloudConnected.supabase) {
+    if (cloudConnected.supabase && email) {
       const targetProj = updated.find(p => p.id === projectId);
       if (targetProj) {
-        syncProjectToSupabase(targetProj);
+        syncProjectToSupabase(targetProj, email);
       }
     }
   };
@@ -436,10 +447,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     mockStorage.saveProjects(updated, email);
 
     // Cloud Sync: Update in Supabase DB if configured
-    if (cloudConnected.supabase) {
+    if (cloudConnected.supabase && email) {
       const targetProj = updated.find((p) => p.id === projectId);
       if (targetProj) {
-        syncProjectToSupabase(targetProj);
+        syncProjectToSupabase(targetProj, email);
       }
     }
   };
@@ -488,7 +499,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         evaluatee_id: evaluateeId,
         answers: JSON.stringify(answers),
         ai_feedback: aiText,
-        submitted_at: new Date().toISOString()
+        submitted_at: new Date().toISOString(),
+        teacher_email: targetTeacherEmail
       });
     }
 
@@ -550,7 +562,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         evaluatee_id: evaluateeId,
         answers: JSON.stringify({}),
         ai_feedback: aiTotalText,
-        submitted_at: new Date().toISOString()
+        submitted_at: new Date().toISOString(),
+        teacher_email: targetTeacherEmail
       });
     }
 
