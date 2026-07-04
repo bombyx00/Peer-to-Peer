@@ -13,10 +13,11 @@ const getDefaultPlaceholder = (type: 'rating' | 'slider' | 'text') => {
 };
 
 export const ProjectCreator: React.FC = () => {
-  const { projects, createProject, updateProject, deleteProject, toggleProjectStatus } = useApp();
+  const { projects, createProject, updateProject, deleteProject, toggleProjectStatus, rosters } = useApp();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selfEvalEnabled, setSelfEvalEnabled] = useState(true);
+  const [projectRosterId, setProjectRosterId] = useState('');
   
   const [questions, setQuestions] = useState<Question[]>([
     { id: 'q-1', type: 'rating', questionText: '', required: true },
@@ -67,6 +68,7 @@ export const ProjectCreator: React.FC = () => {
     setDescription(project.description);
     setQuestions(project.questions);
     setSelfEvalEnabled(project.selfEvalEnabled);
+    setProjectRosterId(project.rosterId || 'roster-default');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -79,6 +81,7 @@ export const ProjectCreator: React.FC = () => {
       { id: 'q-2', type: 'slider', questionText: '', required: true },
     ]);
     setSelfEvalEnabled(true);
+    setProjectRosterId('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -99,12 +102,14 @@ export const ProjectCreator: React.FC = () => {
       return q;
     });
 
+    const activeRosterId = projectRosterId || (rosters[0]?.id || 'roster-default');
+
     if (editingProjectId) {
-      updateProject(editingProjectId, title, description, finalQuestions, selfEvalEnabled);
+      updateProject(editingProjectId, title, description, finalQuestions, selfEvalEnabled, activeRosterId);
       setEditingProjectId(null);
       alert('프로젝트 정보가 수정되었습니다.');
     } else {
-      createProject(title, description, finalQuestions, selfEvalEnabled);
+      createProject(title, description, finalQuestions, selfEvalEnabled, activeRosterId);
       alert('새 프로젝트가 생성되었습니다. 모둠 배정 탭으로 가셔서 모둠을 구성해주세요.');
     }
 
@@ -115,6 +120,7 @@ export const ProjectCreator: React.FC = () => {
       { id: 'q-2', type: 'slider', questionText: '', required: true },
     ]);
     setSelfEvalEnabled(true);
+    setProjectRosterId('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
@@ -183,6 +189,29 @@ export const ProjectCreator: React.FC = () => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-joseon)' }}>
+              평가 대상 학급 명단
+            </label>
+            <select
+              className="glass-input"
+              style={{ width: '100%' }}
+              value={projectRosterId}
+              onChange={(e) => setProjectRosterId(e.target.value)}
+            >
+              {rosters.length === 0 ? (
+                <option value="roster-default">기본 명단 (미등록 상태)</option>
+              ) : (
+                rosters.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))
+              )}
+            </select>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'var(--font-joseon)' }}>
+              이 프로젝트에 참여하고 평가받을 학생 명단 그룹을 선택합니다. 명단은 [CSV 명단 등록] 탭에서 생성할 수 있습니다.
+            </p>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -372,6 +401,9 @@ export const ProjectCreator: React.FC = () => {
                   </p>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(5, 150, 105, 0.08)', color: '#059669', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                      학급: {rosters.find(r => r.id === proj.rosterId)?.name || '기본 명단'}
+                    </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <FileText size={12} /> 문항 {proj.questions.length}개
                     </span>

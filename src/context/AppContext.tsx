@@ -17,6 +17,11 @@ interface AppContextType {
   students: Student[];
   projects: Project[];
   evaluations: Evaluation[];
+  rosters: Roster[];
+  selectedRosterId: string;
+  setSelectedRosterId: (id: string) => void;
+  createRoster: (name: string) => void;
+  deleteRoster: (id: string) => void;
   cloudConnected: { supabase: boolean; sheets: boolean; gemini: boolean };
   loginAsStudent: (email: string) => boolean;
   loginAsStudentWithCode: (
@@ -33,14 +38,16 @@ interface AppContextType {
     title: string,
     description: string,
     questions: Question[],
-    selfEvalEnabled: boolean
+    selfEvalEnabled: boolean,
+    rosterId: string
   ) => void;
   updateProject: (
     projectId: string,
     title: string,
     description: string,
     questions: Question[],
-    selfEvalEnabled: boolean
+    selfEvalEnabled: boolean,
+    rosterId: string
   ) => void;
   updateProjectGroups: (projectId: string, groups: Group[]) => void;
   deleteProject: (projectId: string) => void;
@@ -66,6 +73,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [students, setStudents] = useState<Student[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [rosters, setRosters] = useState<Roster[]>([]);
+  const [selectedRosterId, setSelectedRosterId] = useState<string>('');
   const [cloudConnected, setCloudConnected] = useState({ supabase: false, sheets: false, gemini: false });
 
   // Get current logged-in teacher email helper
@@ -126,16 +135,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setStudents([]);
       setProjects([]);
       setEvaluations([]);
+      setRosters([]);
+      setSelectedRosterId('');
       return;
     }
     
     let loadedStudents = mockStorage.getStudents(email);
     let loadedProjects = mockStorage.getProjects(email);
     let loadedEvaluations = mockStorage.getEvaluations(email);
+    let loadedRosters = mockStorage.getRosters(email);
 
     // If Supabase is configured, pull all active data from Cloud DB
     if (cloudConnected.supabase) {
       try {
+        const cloudRosters = await fetchAllRostersFromSupabase(email);
+        if (cloudRosters.length > 0) {
+          loadedRosters = cloudRosters.map((cr: any) => ({
+            id: cr.id,
+            name: cr.name,
+            createdAt: cr.createdAt,
+          }));
+        } else {
+          // 클라우드에 rosters가 없고 로컬에는 있는 경우 백업 업로드
+          if (loadedRosters.length > 0) {
+            syncRostersToSupabase(loadedRosters, email);
+          }
+        }
+
         const cloudProjs = await fetchAllProjectsFromSupabase(email);
         if (cloudProjs.length > 0) {
           loadedProjects = cloudProjs.map((cp: any) => ({
@@ -148,6 +174,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             active: cp.active,
             createdAt: cp.createdAt,
             accessCode: cp.accessCode,
+            rosterId: cp.roster_id || 'roster-default', // Roster ID 매핑 추가
           }));
         }
 
@@ -160,6 +187,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             number: cs.number,
             name: cs.name,
             email: cs.email,
+            rosterId: cs.roster_id || 'roster-default', // Roster ID 매핑 추가
           }));
         }
 
@@ -192,6 +220,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setStudents(loadedStudents);
     setProjects(loadedProjects);
     setEvaluations(loadedEvaluations);
+    setRosters(loadedRosters);
+
+    // selectedRosterId가 목록 내에 유효한지 검증 후 설정
+    if (loadedRosters.length > 0) {
+      setSelectedRosterId(prev => loadedRosters.some(r => r.id === prev) ? prev : loadedRosters[0].id);
+    } else {
+      setSelectedRosterId('');
+    }
   };
 
   // Reload data dynamically whenever user session changes (Data Isolation)
@@ -273,8 +309,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 3. Load the corresponding student list for that teacher's space to match the student details
     const targetStudents = mockStorage.getStudents(foundTeacherEmail);
+    const targetRosterId = matchedProject.rosterId || 'roster-default';
+
     let found = targetStudents.find(
       (s) =>
+        (s.rosterId || 'roster-default') === targetRosterId &&
         s.grade.trim() === grade.trim() &&
         s.classNum.trim() === classNum.trim() &&
         s.number.trim() === number.trim() &&
@@ -284,7 +323,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 4. If not found in local student roster but Supabase is configured, fetch from cloud DB!
     if (!found && cloudConnected.supabase) {
       const cloudStudent = await fetchStudentByDetails(grade, classNum, number, name);
-      if (cloudStudent) {
+      if (cloudStudent && (cloudStudent.roster_id || 'roster-default') === targetRosterId) {
         found = {
           id: cloudStudent.id,
           grade: cloudStudent.grade,
@@ -292,6 +331,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           number: cloudStudent.number,
           name: cloudStudent.name,
           email: cloudStudent.email,
+          rosterId: cloudStudent.roster_id || 'roster-default'
         };
       }
     }
@@ -299,7 +339,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (found) {
       const loggedUser: User = {
         role: 'student',
-        studentInfo: found,
+        studentInfo: {
+          ...found,
+          rosterId: found.rosterId || 'roster-default'
+        },
         currentProjectId: matchedProject.id,
       };
       setUser(loggedUser);
@@ -317,6 +360,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const userProjectKey = `peer_eval_projects_${cleanEmail}`;
     const userStudentKey = `peer_eval_students_${cleanEmail}`;
     const userEvalKey = `peer_eval_evaluations_${cleanEmail}`;
+    const userRosterKey = `peer_eval_rosters_${cleanEmail}`;
 
     if (!localStorage.getItem(userProjectKey)) {
       const oldProjects = localStorage.getItem('peer_eval_projects');
@@ -337,6 +381,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
+    // [Roster Migration] rosters 키가 없는 교사 계정의 경우 마이그레이션 수행
+    if (!localStorage.getItem(userRosterKey)) {
+      const oldRosters = localStorage.getItem('peer_eval_rosters');
+      if (oldRosters) {
+        localStorage.setItem(userRosterKey, oldRosters);
+      } else {
+        // 기존 명단들을 Roster-default ('기본 명단')로 통합 바인딩
+        const defaultRoster = [{
+          id: 'roster-default',
+          name: '기본 명단',
+          createdAt: new Date().toISOString()
+        }];
+        localStorage.setItem(userRosterKey, JSON.stringify(defaultRoster));
+
+        // 학생 데이터에 rosterId: 'roster-default' 주입
+        const currentStuds = localStorage.getItem(userStudentKey);
+        if (currentStuds) {
+          try {
+            const parsed = JSON.parse(currentStuds);
+            const migrated = parsed.map((s: any) => ({
+              ...s,
+              rosterId: s.rosterId || 'roster-default'
+            }));
+            localStorage.setItem(userStudentKey, JSON.stringify(migrated));
+          } catch(e) {}
+        }
+
+        // 프로젝트 데이터에 rosterId: 'roster-default' 주입
+        const currentProjs = localStorage.getItem(userProjectKey);
+        if (currentProjs) {
+          try {
+            const parsed = JSON.parse(currentProjs);
+            const migrated = parsed.map((p: any) => ({
+              ...p,
+              rosterId: p.rosterId || 'roster-default'
+            }));
+            localStorage.setItem(userProjectKey, JSON.stringify(migrated));
+          } catch(e) {}
+        }
+      }
+    }
+
     const loggedUser: User = { role: 'teacher', teacherInfo: { email, name } };
     setUser(loggedUser);
     localStorage.setItem('peer_eval_current_user', JSON.stringify(loggedUser));
@@ -347,17 +433,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setStudents([]);
     setProjects([]);
     setEvaluations([]);
+    setRosters([]);
+    setSelectedRosterId('');
     localStorage.removeItem('peer_eval_current_user');
   };
 
-  const uploadStudents = (newStudents: Student[]) => {
+  const uploadStudents = (rosterStudents: Student[]) => {
     const email = getTeacherEmail();
-    setStudents(newStudents);
-    mockStorage.saveStudents(newStudents, email);
+    if (!selectedRosterId) return;
+
+    // 현재 관리중인 명단 그룹(rosterId)을 강제로 맵핑
+    const updatedRosterStudents = rosterStudents.map(s => ({
+      ...s,
+      rosterId: selectedRosterId
+    }));
+
+    // 다른 명단 그룹에 속한 기존 학생들을 보존
+    const otherStudents = students.filter(s => s.rosterId !== selectedRosterId);
+    const allStudents = [...otherStudents, ...updatedRosterStudents];
+
+    setStudents(allStudents);
+    mockStorage.saveStudents(allStudents, email);
     
     // Cloud Sync if configured
     if (cloudConnected.supabase && email) {
-      syncStudentsToSupabase(newStudents, email);
+      syncStudentsToSupabase(allStudents, email);
     }
   };
 
@@ -365,7 +465,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     title: string,
     description: string,
     questions: Question[],
-    selfEvalEnabled: boolean
+    selfEvalEnabled: boolean,
+    rosterId: string
   ) => {
     const email = getTeacherEmail();
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -375,6 +476,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description,
       questions,
       selfEvalEnabled,
+      rosterId, // rosterId 추가
       groups: [],
       active: true,
       createdAt: new Date().toISOString(),
@@ -395,11 +497,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     title: string,
     description: string,
     questions: Question[],
-    selfEvalEnabled: boolean
+    selfEvalEnabled: boolean,
+    rosterId: string
   ) => {
     const email = getTeacherEmail();
     const updated = projects.map((p) =>
-      p.id === projectId ? { ...p, title, description, questions, selfEvalEnabled } : p
+      p.id === projectId ? { ...p, title, description, questions, selfEvalEnabled, rosterId } : p
     );
     setProjects(updated);
     mockStorage.saveProjects(updated, email);
@@ -424,6 +527,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const targetProj = updated.find(p => p.id === projectId);
       if (targetProj) {
         syncProjectToSupabase(targetProj, email);
+      }
+    }
+  };
+
+  // 명단 그룹(Roster) 생성 및 저장 기능 추가
+  const createRoster = (name: string) => {
+    const email = getTeacherEmail();
+    const newRoster: Roster = {
+      id: `roster-${Date.now()}`,
+      name: name.trim(),
+      createdAt: new Date().toISOString()
+    };
+    const updated = [...rosters, newRoster];
+    setRosters(updated);
+    mockStorage.saveRosters(updated, email);
+    setSelectedRosterId(newRoster.id);
+
+    if (cloudConnected.supabase && email) {
+      syncRostersToSupabase(updated, email);
+    }
+  };
+
+  // 명단 그룹(Roster) 삭제 기능 추가 (소속 학생 동시 영구 삭제)
+  const deleteRoster = (id: string) => {
+    const email = getTeacherEmail();
+    const targetRoster = rosters.find(r => r.id === id);
+    if (!targetRoster) return;
+
+    if (confirm(`⚠️ [${targetRoster.name}] 학급 명단 그룹을 삭제하시겠습니까?\n해당 학급에 소속된 모든 학생 명단 데이터도 함께 영구 삭제됩니다.`)) {
+      const updatedRosters = rosters.filter(r => r.id !== id);
+      setRosters(updatedRosters);
+      mockStorage.saveRosters(updatedRosters, email);
+
+      const remainingStudents = students.filter(s => s.rosterId !== id);
+      setStudents(remainingStudents);
+      mockStorage.saveStudents(remainingStudents, email);
+
+      if (updatedRosters.length > 0) {
+        setSelectedRosterId(updatedRosters[0].id);
+      } else {
+        setSelectedRosterId('');
+      }
+
+      if (cloudConnected.supabase && email) {
+        syncRostersToSupabase(updatedRosters, email);
+        syncStudentsToSupabase(remainingStudents, email);
       }
     }
   };

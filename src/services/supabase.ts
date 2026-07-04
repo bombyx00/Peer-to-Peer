@@ -12,7 +12,7 @@ export const isSupabaseConfigured = () => {
   return supabaseUrl !== '' && supabaseAnonKey !== '';
 };
 
-// 학생 데이터를 DB에 동기화
+// 학생 데이터를 DB에 동기화 (roster_id 400 에러 펄백 대응)
 export const syncStudentsToSupabase = async (students: any[], teacherEmail: string) => {
   if (!isSupabaseConfigured()) {
     console.warn('Supabase 환경변수가 설정되지 않아 로컬 모드로 동작합니다.');
@@ -20,13 +20,25 @@ export const syncStudentsToSupabase = async (students: any[], teacherEmail: stri
   }
   
   try {
-    // 각 학생 레코드에 teacher_email 필드를 명시적으로 바인딩
-    const studentsWithEmail = students.map(s => ({
-      ...s,
-      teacher_email: teacherEmail
-    }));
+    const buildPayload = (includeRoster: boolean) => {
+      return students.map(s => {
+        const payload: any = {
+          id: s.id,
+          grade: s.grade,
+          classNum: s.classNum,
+          number: s.number,
+          name: s.name,
+          email: s.email,
+          teacher_email: teacherEmail
+        };
+        if (includeRoster) {
+          payload.roster_id = s.rosterId || 'roster-default';
+        }
+        return payload;
+      });
+    };
 
-    const response = await fetch(`${supabaseUrl}/rest/v1/students`, {
+    let response = await fetch(`${supabaseUrl}/rest/v1/students`, {
       method: 'POST',
       headers: {
         'apikey': supabaseAnonKey,
@@ -34,8 +46,24 @@ export const syncStudentsToSupabase = async (students: any[], teacherEmail: stri
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates'
       },
-      body: JSON.stringify(studentsWithEmail)
+      body: JSON.stringify(buildPayload(true))
     });
+
+    // 400 에러 발생 시, roster_id가 DB 테이블에 없는 것으로 간주하여 펄백 재시도
+    if (response.status === 400) {
+      console.warn('Supabase students 테이블에 roster_id 컬럼이 없어 roster_id 없이 동기화를 재시도합니다.');
+      response = await fetch(`${supabaseUrl}/rest/v1/students`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(buildPayload(false))
+      });
+    }
+
     return response.ok;
   } catch (error) {
     console.error('Supabase 학생 동기화 실패:', error);
@@ -43,17 +71,30 @@ export const syncStudentsToSupabase = async (students: any[], teacherEmail: stri
   }
 };
 
-// 프로젝트 및 모둠 정보 동기화
+// 프로젝트 및 모둠 정보 동기화 (roster_id 400 에러 펄백 대응)
 export const syncProjectToSupabase = async (project: any, teacherEmail: string) => {
   if (!isSupabaseConfigured()) return false;
   try {
-    // 프로젝트 레코드에 teacher_email 필드를 명시적으로 바인딩
-    const projectWithEmail = {
-      ...project,
-      teacher_email: teacherEmail
+    const buildPayload = (includeRoster: boolean) => {
+      const payload: any = {
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        questions: typeof project.questions === 'string' ? project.questions : JSON.stringify(project.questions),
+        selfEvalEnabled: project.selfEvalEnabled,
+        groups: typeof project.groups === 'string' ? project.groups : JSON.stringify(project.groups),
+        active: project.active,
+        createdAt: project.createdAt,
+        accessCode: project.accessCode,
+        teacher_email: teacherEmail
+      };
+      if (includeRoster) {
+        payload.roster_id = project.rosterId || 'roster-default';
+      }
+      return payload;
     };
 
-    const response = await fetch(`${supabaseUrl}/rest/v1/projects`, {
+    let response = await fetch(`${supabaseUrl}/rest/v1/projects`, {
       method: 'POST',
       headers: {
         'apikey': supabaseAnonKey,
@@ -61,8 +102,24 @@ export const syncProjectToSupabase = async (project: any, teacherEmail: string) 
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates'
       },
-      body: JSON.stringify(projectWithEmail)
+      body: JSON.stringify(buildPayload(true))
     });
+
+    // 400 에러 발생 시, roster_id가 DB 테이블에 없는 것으로 간주하여 펄백 재시도
+    if (response.status === 400) {
+      console.warn('Supabase projects 테이블에 roster_id 컬럼이 없어 roster_id 없이 동기화를 재시도합니다.');
+      response = await fetch(`${supabaseUrl}/rest/v1/projects`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(buildPayload(false))
+      });
+    }
+
     return response.ok;
   } catch (error) {
     console.error('Supabase 프로젝트 동기화 실패:', error);
@@ -337,6 +394,60 @@ export const fetchAllEvaluationsFromSupabase = async (teacherEmail: string): Pro
     return [];
   } catch (error) {
     console.error('Supabase 전체 평가 조회 실패:', error);
+    return [];
+  }
+};
+
+// 명단 그룹(rosters) 데이터를 DB에 동기화
+export const syncRostersToSupabase = async (rosters: any[], teacherEmail: string) => {
+  if (!isSupabaseConfigured()) return false;
+  try {
+    const rostersPayload = rosters.map(r => ({
+      id: r.id,
+      name: r.name,
+      createdAt: r.createdAt,
+      teacher_email: teacherEmail
+    }));
+
+    const response = await fetch(`${supabaseUrl}/rest/v1/rosters`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify(rostersPayload)
+    });
+
+    if (!response.ok) {
+      console.warn('Supabase rosters 테이블 동기화 실패 (테이블이 없을 수 있음):', response.statusText);
+    }
+    return response.ok;
+  } catch (error) {
+    console.error('Supabase rosters 동기화 에러:', error);
+    return false;
+  }
+};
+
+// Supabase DB의 명단 그룹 조회
+export const fetchAllRostersFromSupabase = async (teacherEmail: string): Promise<any[]> => {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/rosters?teacher_email=eq.${encodeURIComponent(teacherEmail)}`, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    return [];
+  } catch (error) {
+    console.warn('Supabase rosters 조회 실패 (테이블이 없을 수 있음):', error);
     return [];
   }
 };

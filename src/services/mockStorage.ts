@@ -1,3 +1,9 @@
+export interface Roster {
+  id: string;
+  name: string; // 예: "3학년 1반", "3학년 2반"
+  createdAt: string;
+}
+
 export interface Student {
   id: string;
   grade: string;
@@ -5,6 +11,7 @@ export interface Student {
   number: string;
   name: string;
   email: string;
+  rosterId: string; // 소속 명단 그룹 ID
 }
 
 export interface Group {
@@ -24,6 +31,7 @@ export interface Project {
   id: string;
   title: string;
   description: string;
+  rosterId?: string; // 이 프로젝트의 평가 대상 명단 그룹 ID
   groups: Group[];
   questions: Question[];
   selfEvalEnabled: boolean;
@@ -46,6 +54,7 @@ const STORAGE_KEYS = {
   STUDENTS: 'peer_eval_students',
   PROJECTS: 'peer_eval_projects',
   EVALUATIONS: 'peer_eval_evaluations',
+  ROSTERS: 'peer_eval_rosters',
 };
 
 
@@ -131,13 +140,30 @@ export const mockStorage = {
     localStorage.setItem(key, JSON.stringify(evals));
   },
 
+  getRosters(email?: string): Roster[] {
+    const key = this.getKey(STORAGE_KEYS.ROSTERS, email);
+    const data = localStorage.getItem(key);
+    if (!data) {
+      localStorage.setItem(key, JSON.stringify([]));
+      return [];
+    }
+    return JSON.parse(data);
+  },
+
+  saveRosters(rosters: Roster[], email?: string): void {
+    const key = this.getKey(STORAGE_KEYS.ROSTERS, email);
+    localStorage.setItem(key, JSON.stringify(rosters));
+  },
+
   resetAllData(email?: string): void {
     const keyStudents = this.getKey(STORAGE_KEYS.STUDENTS, email);
     const keyProjects = this.getKey(STORAGE_KEYS.PROJECTS, email);
     const keyEvals = this.getKey(STORAGE_KEYS.EVALUATIONS, email);
+    const keyRosters = this.getKey(STORAGE_KEYS.ROSTERS, email);
 
     localStorage.setItem(keyStudents, JSON.stringify([]));
     localStorage.setItem(keyProjects, JSON.stringify([]));
+    localStorage.setItem(keyRosters, JSON.stringify([]));
     localStorage.removeItem(keyEvals);
   },
 };

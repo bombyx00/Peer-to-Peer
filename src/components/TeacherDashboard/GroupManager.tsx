@@ -120,9 +120,11 @@ export const GroupManager: React.FC = () => {
     }
   };
 
-  // Find students not assigned to any group in the current project
+  // Find students not assigned to any group in the current project (Scoped to the project's roster)
   const assignedIds = groups.reduce<string[]>((acc, g) => [...acc, ...g.memberIds], []);
-  const unassignedStudents = students.filter((s) => !assignedIds.includes(s.id));
+  const targetRosterId = currentProject?.rosterId || 'roster-default';
+  const rosterStudents = students.filter((s) => s.rosterId === targetRosterId);
+  const unassignedStudents = rosterStudents.filter((s) => !assignedIds.includes(s.id));
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
