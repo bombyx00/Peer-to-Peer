@@ -74,10 +74,11 @@ const DroppableArea: React.FC<{
 };
 
 export const GroupManager: React.FC = () => {
-  const { students, projects, updateProjectGroups } = useApp();
+  const { students, projects, updateProjectGroups, updateProject, rosters } = useApp();
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [groups, setGroups] = useState<Group[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
+  const [selectedCategoryRosterId, setSelectedCategoryRosterId] = useState('');
 
   const currentProject = projects.find((p) => p.id === selectedProjectId);
 
@@ -90,10 +91,40 @@ export const GroupManager: React.FC = () => {
   useEffect(() => {
     if (currentProject) {
       setGroups(currentProject.groups || []);
+      setSelectedCategoryRosterId(currentProject.rosterId || 'roster-default');
     } else {
       setGroups([]);
     }
   }, [selectedProjectId, projects]);
+
+  const loadCategoryStudents = () => {
+    if (!selectedProjectId || !currentProject) return;
+    const targetRoster = rosters.find(r => r.id === selectedCategoryRosterId);
+    const rosterName = targetRoster ? targetRoster.name : '기본 명단';
+
+    if (confirm(`[${rosterName}] 카테고리에서 학생 명단을 불러오시겠습니까?\n이 프로젝트의 기존 모둠 배정 중 이 카테고리에 속하지 않는 학생 정보는 제거되며, 새 카테고리의 학생들이 대기열에 추가됩니다.`)) {
+      updateProject(
+        currentProject.id,
+        currentProject.title,
+        currentProject.description,
+        currentProject.questions,
+        currentProject.selfEvalEnabled,
+        selectedCategoryRosterId
+      );
+
+      const rosterStudents = students.filter(s => s.rosterId === selectedCategoryRosterId);
+      const rosterStudentIds = new Set(rosterStudents.map(s => s.id));
+
+      const updatedGroups = groups.map(g => ({
+        ...g,
+        memberIds: g.memberIds.filter(id => rosterStudentIds.has(id))
+      }));
+
+      setGroups(updatedGroups);
+      updateProjectGroups(selectedProjectId, updatedGroups);
+      alert(`성공적으로 [${rosterName}] 명단 카테고리를 로드했습니다.`);
+    }
+  };
 
   const addGroup = (e: React.FormEvent) => {
     e.preventDefault();
@@ -253,7 +284,40 @@ export const GroupManager: React.FC = () => {
           </select>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Roster Category Select and Load */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <select
+              className="glass-input"
+              style={{ width: '160px' }}
+              value={selectedCategoryRosterId}
+              onChange={(e) => setSelectedCategoryRosterId(e.target.value)}
+            >
+              {rosters.length === 0 ? (
+                <option value="roster-default">기본 명단</option>
+              ) : (
+                rosters.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))
+              )}
+            </select>
+            <button
+              type="button"
+              onClick={loadCategoryStudents}
+              className="btn btn-secondary"
+              style={{
+                padding: '8px 14px',
+                fontSize: '19px',
+                fontFamily: 'var(--font-yeongwol)',
+                background: '#ecfdf5',
+                color: '#059669',
+                border: '1px solid rgba(5, 150, 105, 0.2)'
+              }}
+            >
+              명단 불러오기
+            </button>
+          </div>
+
           <form onSubmit={addGroup} style={{ display: 'flex', gap: '8px' }}>
             <input
               type="text"

@@ -350,7 +350,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: true };
     }
 
-    return { success: false, error: '등록된 학생 명단에서 일치하는 학생 정보를 찾을 수 없습니다.' };
+    return { success: false, error: '이 프로젝트의 명단 카테고리에 등록된 학생 정보와 일치하지 않습니다.' };
   };
 
   const loginAsTeacher = (email: string, name: string) => {

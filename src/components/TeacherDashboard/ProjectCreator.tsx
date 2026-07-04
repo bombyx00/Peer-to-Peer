@@ -193,7 +193,7 @@ export const ProjectCreator: React.FC = () => {
 
           <div>
             <label style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-joseon)' }}>
-              평가 대상 학급 명단
+              기본 매핑 카테고리
             </label>
             <select
               className="glass-input"
@@ -210,7 +210,7 @@ export const ProjectCreator: React.FC = () => {
               )}
             </select>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'var(--font-joseon)' }}>
-              이 프로젝트에 참여하고 평가받을 학생 명단 그룹을 선택합니다. 명단은 [CSV 명단 등록] 탭에서 생성할 수 있습니다.
+              이 프로젝트에 참여하고 평가받을 기본 학생 명단 카테고리를 선택합니다. 명단은 [CSV 명단 등록] 탭에서 생성할 수 있습니다.
             </p>
           </div>
 
@@ -402,7 +402,7 @@ export const ProjectCreator: React.FC = () => {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '12px' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(5, 150, 105, 0.08)', color: '#059669', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                      학급: {rosters.find(r => r.id === proj.rosterId)?.name || '기본 명단'}
+                      카테고리: {rosters.find(r => r.id === proj.rosterId)?.name || '기본 명단'}
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <FileText size={12} /> 문항 {proj.questions.length}개

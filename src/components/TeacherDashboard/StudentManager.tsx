@@ -183,7 +183,7 @@ export const StudentManager: React.FC = () => {
         <div className="glass-panel" style={{ padding: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <form onSubmit={handleCreateRosterSubmit} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', marginRight: '8px', fontFamily: 'var(--font-joseon)' }}>
-              새 학급 명단 만들기
+              새 학생 명단 카테고리 만들기
             </label>
             <input
               type="text"
@@ -194,15 +194,15 @@ export const StudentManager: React.FC = () => {
               onChange={(e) => setNewRosterName(e.target.value)}
             />
             <button type="submit" className="btn btn-primary" style={{ padding: '8px 18px', fontSize: '19px', fontFamily: 'var(--font-yeongwol)' }}>
-              명단 그룹 생성
+              카테고리 생성
             </button>
           </form>
         </div>
 
         <div className="glass-panel" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
           <Users size={48} color="var(--primary)" style={{ marginBottom: '16px' }} />
-          <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px', fontFamily: 'var(--font-yeongwol)' }}>학급 명단이 존재하지 않습니다</h3>
-          <p style={{ fontSize: '14px', fontFamily: 'var(--font-joseon)' }}>상단의 추가 창을 통해 먼저 관리할 학급 명단 그룹을 생성해 주세요.</p>
+          <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px', fontFamily: 'var(--font-yeongwol)' }}>학생 명단 카테고리가 존재하지 않습니다</h3>
+          <p style={{ fontSize: '14px', fontFamily: 'var(--font-joseon)' }}>상단의 추가 폼을 통해 먼저 학생 명단 카테고리를 생성해 주세요.</p>
         </div>
       </div>
     );
@@ -215,7 +215,7 @@ export const StudentManager: React.FC = () => {
       {/* Top Bar: Selector & Add/Delete Roster */}
       <div className="glass-panel" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', fontFamily: 'var(--font-joseon)' }}>관리할 학급 명단</label>
+          <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', fontFamily: 'var(--font-joseon)' }}>학생 명단 카테고리 선택</label>
           <select
             className="glass-input"
             style={{ width: '220px' }}
@@ -237,7 +237,7 @@ export const StudentManager: React.FC = () => {
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--danger-light)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              <Trash2 size={13} /> 명단 삭제
+              <Trash2 size={13} /> 카테고리 삭제
             </button>
           )}
         </div>
@@ -245,14 +245,14 @@ export const StudentManager: React.FC = () => {
         <form onSubmit={handleCreateRosterSubmit} style={{ display: 'flex', gap: '8px' }}>
           <input
             type="text"
-            placeholder="새 학급명 (예: 3학년 2반)"
+            placeholder="새 카테고리명 (예: 3학년 2반)"
             className="glass-input"
             style={{ width: '180px', padding: '8px 12px' }}
             value={newRosterName}
             onChange={(e) => setNewRosterName(e.target.value)}
           />
           <button type="submit" className="btn btn-primary" style={{ padding: '8px 18px', fontSize: '19px', fontFamily: 'var(--font-yeongwol)' }}>
-            명단 그룹 추가
+            카테고리 추가
           </button>
         </form>
       </div>
@@ -438,7 +438,7 @@ export const StudentManager: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {filteredStudents.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: '14px' }}>
-                [ {currentRoster?.name} ] 에 등록된 학생이 없습니다. 명단을 등록해주세요.
+                [ {currentRoster?.name} ] 카테고리에 등록된 학생이 없습니다. 명단을 등록해주세요.
               </div>
             ) : (
               [...filteredStudents]
