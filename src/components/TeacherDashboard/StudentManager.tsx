@@ -5,6 +5,7 @@ import { Upload, Trash2, UserPlus, Check, Download, FileSpreadsheet } from 'luci
 
 export const StudentManager: React.FC = () => {
   const { students, uploadStudents } = useApp();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [csvText, setCsvText] = useState('');
   const [singleStudent, setSingleStudent] = useState<Omit<Student, 'id'>>({
     grade: '',
@@ -133,6 +134,31 @@ export const StudentManager: React.FC = () => {
   const handleDelete = (id: string) => {
     if (confirm('이 학생을 삭제하시겠습니까?')) {
       uploadStudents(students.filter((s) => s.id !== id));
+      setSelectedIds((prev) => prev.filter((item) => item !== id));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleAllSelect = () => {
+    if (selectedIds.length === students.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(students.map((s) => s.id));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    if (confirm(`선택한 ${selectedIds.length}명의 학생을 정말로 삭제하시겠습니까?`)) {
+      const remaining = students.filter((s) => !selectedIds.includes(s.id));
+      uploadStudents(remaining);
+      setSelectedIds([]);
+      showSuccess(`선택한 ${selectedIds.length}명의 학생을 삭제했습니다.`);
     }
   };
 
@@ -291,6 +317,41 @@ export const StudentManager: React.FC = () => {
           )}
         </div>
 
+        {/* Bulk select and delete bar */}
+        {students.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 4px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'var(--font-joseon)', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={students.length > 0 && selectedIds.length === students.length}
+                onChange={handleToggleAllSelect}
+                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              전체 선택 ({selectedIds.length} / {students.length})
+            </label>
+            {selectedIds.length > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                className="btn btn-secondary"
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '13px',
+                  color: 'var(--danger)',
+                  borderColor: 'rgba(239, 68, 68, 0.3)',
+                  background: 'rgba(239, 68, 68, 0.05)',
+                  fontFamily: 'var(--font-joseon)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Trash2 size={14} />
+                선택 삭제 ({selectedIds.length}명)
+              </button>
+            )}
+          </div>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {students.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: '14px' }}>
@@ -303,36 +364,48 @@ export const StudentManager: React.FC = () => {
                 const bKey = `${b.grade.padStart(2, '0')}-${b.classNum.padStart(2, '0')}-${b.number.padStart(3, '0')}`;
                 return aKey.localeCompare(bKey);
               })
-              .map((student) => (
-                <div
-                  key={student.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 16px',
-                    background: 'rgba(255, 255, 255, 0.4)',
-                    border: '1px solid var(--glass-border)',
-                    borderRadius: 'var(--radius-md)',
-                  }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-joseon)' }}>
-                      {student.grade}학년 {student.classNum}반 {student.number}번 {student.name}
-                    </span>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)' }}>
-                      {student.email || '(이메일 없음)'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => handleDelete(student.id)}
-                    className="btn-icon"
-                    style={{ color: 'var(--danger)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+              .map((student) => {
+                const isSelected = selectedIds.includes(student.id);
+                return (
+                  <div
+                    key={student.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '12px 16px',
+                      background: isSelected ? 'rgba(79, 70, 229, 0.06)' : 'rgba(255, 255, 255, 0.4)',
+                      border: isSelected ? '1px solid rgba(79, 70, 229, 0.3)' : '1px solid var(--glass-border)',
+                      borderRadius: 'var(--radius-md)',
+                      transition: 'background 0.2s, border-color 0.2s',
+                    }}
                   >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelect(student.id)}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-joseon)' }}>
+                          {student.grade}학년 {student.classNum}반 {student.number}번 {student.name}
+                        </span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)' }}>
+                          {student.email || '(이메일 없음)'}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(student.id)}
+                      className="btn-icon"
+                      style={{ color: 'var(--danger)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                );
+              })
           )}
         </div>
       </div>
