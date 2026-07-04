@@ -289,9 +289,9 @@ export const ProjectCreator: React.FC = () => {
 
           {/* Questions designer */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'flex-start', marginBottom: '20px' }}>
               <label style={{ fontSize: '23px', fontFamily: 'var(--font-yeongwol)', fontWeight: 'bold' }}>평가 문항 설계</label>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
                 <button
                   type="button"
                   onClick={() => addQuestion('rating')}

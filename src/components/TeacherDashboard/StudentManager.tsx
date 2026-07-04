@@ -295,7 +295,7 @@ export const StudentManager: React.FC = () => {
 
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0' }}>
                 <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)', width: '100%' }} />
-                <span style={{ position: 'absolute', background: 'var(--glass-bg)', padding: '0 12px', fontSize: '16px', color: 'var(--text-primary)', fontFamily: 'var(--font-yeongwol)' }}>
+                <span style={{ position: 'absolute', background: 'var(--glass-bg)', padding: '0 12px', fontSize: '20px', color: 'var(--text-primary)', fontFamily: 'var(--font-yeongwol)' }}>
                   또는 직접 텍스트 붙여넣기
                 </span>
               </div>
