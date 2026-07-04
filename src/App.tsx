@@ -73,9 +73,9 @@ const MainApp: React.FC = () => {
       }
       
       // 3. Bold text parsing e.g., **Text**
-      let content: React.ReactNode = line;
-      if (line.includes('**')) {
-        const parts = line.split('**');
+      let content: React.ReactNode = trimmed;
+      if (trimmed.includes('**')) {
+        const parts = trimmed.split('**');
         content = parts.map((part, pIdx) => 
           pIdx % 2 === 1 
             ? <strong key={pIdx} style={{ fontWeight: 700, color: 'var(--primary)' }}>{part}</strong> 
@@ -126,13 +126,25 @@ const MainApp: React.FC = () => {
         );
       }
       if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        const isNested = line.startsWith('  ') || line.startsWith('\t');
         const bulletText = typeof content === 'string' 
           ? content.slice(2) 
           : React.Children.toArray(content).slice(1);
           
         return (
-          <p key={index} style={{ margin: '6px 0', paddingLeft: '20px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', position: 'relative', textAlign: 'justify' }}>
-            <span style={{ position: 'absolute', left: '8px', color: 'var(--primary)' }}>•</span>
+          <p 
+            key={index} 
+            style={{ 
+              margin: '6px 0', 
+              paddingLeft: isNested ? '36px' : '20px', 
+              fontSize: '13px', 
+              color: 'var(--text-secondary)', 
+              lineHeight: '1.6', 
+              position: 'relative', 
+              textAlign: 'justify' 
+            }}
+          >
+            <span style={{ position: 'absolute', left: isNested ? '24px' : '8px', color: 'var(--primary)' }}>•</span>
             {bulletText}
           </p>
         );
