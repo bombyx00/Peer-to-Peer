@@ -1,13 +1,29 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { Question, Project } from '../../services/mockStorage';
-import { Plus, Trash2, Calendar, FileText, Settings, ChevronUp, ChevronDown, Edit, Copy } from 'lucide-react';
+import { Plus, Trash2, Calendar, FileText, Settings, ChevronUp, ChevronDown, Edit, Copy, GripVertical, CheckSquare, List } from 'lucide-react';
 
-const getDefaultPlaceholder = (type: 'rating' | 'slider' | 'text') => {
-  const defaultTexts = {
+const COLOR_PALETTE = [
+  { label: '빨강', value: '#ef4444' },
+  { label: '주황', value: '#f97316' },
+  { label: '노랑', value: '#eab308' },
+  { label: '초록', value: '#22c55e' },
+  { label: '파랑', value: '#3b82f6' },
+  { label: '남색', value: '#6366f1' },
+  { label: '보라', value: '#a855f7' },
+  { label: '흰색', value: '#ffffff' },
+  { label: '검정', value: '#1e293b' },
+  { label: '회색', value: '#94a3b8' },
+];
+
+const getDefaultPlaceholder = (type: Question['type']) => {
+  const defaultTexts: Record<Question['type'], string> = {
     rating: '질문 예: 이 모둠원은 역할을 책임감 있게 수행했습니까?',
     slider: '질문 예: 이 모둠원의 전반적인 기여도는 몇 %입니까?',
     text: '질문 예: 이 모둠원의 가장 뛰어났던 점이나 보완할 점을 자유롭게 기술해주세요.',
+    color: '질문 예: 이 모둠원을 떠올리는 색깔을 선택해주세요.',
+    'choice-single': '질문 예: 이 모둠원의 특징을 가장 잘 나타내는 것은 무엇입니까?',
+    'choice-multiple': '질문 예: 이 모둠원이 보여준 행동을 모두 골라주세요.',
   };
   return defaultTexts[type];
 };
@@ -26,12 +42,15 @@ export const ProjectCreator: React.FC = () => {
 
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
 
-  const addQuestion = (type: 'rating' | 'slider' | 'text') => {
+  const addQuestion = (type: Question['type']) => {
     const newQuestion: Question = {
       id: `q-${Date.now()}`,
       type,
       questionText: '',
       required: true,
+      options: (type === 'choice-single' || type === 'choice-multiple')
+        ? ['보기 1', '보기 2', '보기 3']
+        : undefined,
     };
     setQuestions([...questions, newQuestion]);
   };
@@ -60,6 +79,30 @@ export const ProjectCreator: React.FC = () => {
 
   const updateQuestionRequired = (id: string, required: boolean) => {
     setQuestions(questions.map((q) => (q.id === id ? { ...q, required } : q)));
+  };
+
+  const addOption = (questionId: string) => {
+    setQuestions(questions.map(q =>
+      q.id === questionId
+        ? { ...q, options: [...(q.options || []), `보기 ${(q.options?.length || 0) + 1}`] }
+        : q
+    ));
+  };
+
+  const updateOption = (questionId: string, optionIdx: number, value: string) => {
+    setQuestions(questions.map(q =>
+      q.id === questionId
+        ? { ...q, options: q.options?.map((o, i) => i === optionIdx ? value : o) }
+        : q
+    ));
+  };
+
+  const removeOption = (questionId: string, optionIdx: number) => {
+    setQuestions(questions.map(q =>
+      q.id === questionId
+        ? { ...q, options: q.options?.filter((_, i) => i !== optionIdx) }
+        : q
+    ));
   };
 
   const handleStartEdit = (project: Project) => {
@@ -248,7 +291,7 @@ export const ProjectCreator: React.FC = () => {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <label style={{ fontSize: '23px', fontFamily: 'var(--font-yeongwol)', fontWeight: 'bold' }}>평가 문항 설계</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => addQuestion('rating')}
@@ -273,6 +316,30 @@ export const ProjectCreator: React.FC = () => {
                 >
                   <Plus size={14} /> 서술 문항
                 </button>
+                <button
+                  type="button"
+                  onClick={() => addQuestion('color')}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '13px', fontFamily: 'var(--font-joseon)', background: 'rgba(168,85,247,0.07)', color: '#7c3aed', border: '1px solid rgba(168,85,247,0.2)' }}
+                >
+                  <Plus size={14} /> 감정 색채 문항
+                </button>
+                <button
+                  type="button"
+                  onClick={() => addQuestion('choice-single')}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '13px', fontFamily: 'var(--font-joseon)', background: 'rgba(16,185,129,0.07)', color: '#059669', border: '1px solid rgba(16,185,129,0.2)' }}
+                >
+                  <Plus size={14} /> 객관식(단일)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => addQuestion('choice-multiple')}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '13px', fontFamily: 'var(--font-joseon)', background: 'rgba(245,158,11,0.07)', color: '#b45309', border: '1px solid rgba(245,158,11,0.2)' }}
+                >
+                  <Plus size={14} /> 객관식(복수)
+                </button>
               </div>
             </div>
 
@@ -291,9 +358,16 @@ export const ProjectCreator: React.FC = () => {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', fontFamily: 'var(--font-joseon)' }}>
-                      문항 {idx + 1} - {q.type === 'rating' ? '⭐ 별점 척도' : q.type === 'slider' ? '📊 백분율 슬라이더' : '✍️ 서술형 의견'}
-                    </span>
+                     <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', fontFamily: 'var(--font-joseon)' }}>
+                       문항 {idx + 1} - {
+                         q.type === 'rating' ? '⭐ 별점 척도' :
+                         q.type === 'slider' ? '📊 백분율 슬라이더' :
+                         q.type === 'text' ? '✍️ 서술형 의견' :
+                         q.type === 'color' ? '🎨 감정 색채 선택' :
+                         q.type === 'choice-single' ? '🔘 객관식 (단일 선택)' :
+                         '☑️ 객관식 (복수 선택)'
+                       }
+                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <button
                         type="button"
@@ -349,6 +423,55 @@ export const ProjectCreator: React.FC = () => {
                     onChange={(e) => updateQuestionText(q.id, e.target.value)}
                     placeholder={getDefaultPlaceholder(q.type)}
                   />
+
+                  {/* 객관식 보기 편집 UI */}
+                  {(q.type === 'choice-single' || q.type === 'choice-multiple') && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)' }}>
+                        보기 목록 ({q.type === 'choice-single' ? '단일 선택' : '복수 선택 가능'})
+                      </span>
+                      {(q.options || []).map((opt, oi) => (
+                        <div key={oi} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)', width: '20px', textAlign: 'right', fontFamily: 'var(--font-joseon)' }}>{oi + 1}.</span>
+                          <input
+                            type="text"
+                            className="glass-input"
+                            style={{ flex: 1, padding: '6px 10px', fontSize: '13px' }}
+                            value={opt}
+                            onChange={(e) => updateOption(q.id, oi, e.target.value)}
+                            placeholder={`보기 ${oi + 1}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeOption(q.id, oi)}
+                            disabled={(q.options?.length || 0) <= 2}
+                            style={{ border: 'none', background: 'transparent', color: 'var(--danger)', cursor: (q.options?.length || 0) <= 2 ? 'not-allowed' : 'pointer', opacity: (q.options?.length || 0) <= 2 ? 0.3 : 1, padding: '4px' }}
+                            title="보기 삭제"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => addOption(q.id)}
+                        className="btn btn-secondary"
+                        style={{ padding: '4px 10px', fontSize: '12px', alignSelf: 'flex-start', fontFamily: 'var(--font-joseon)' }}
+                      >
+                        <Plus size={12} /> 보기 추가
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 색채 문항 미리보기 */}
+                  {q.type === 'color' && (
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px', padding: '10px', background: 'rgba(0,0,0,0.03)', borderRadius: '8px' }}>
+                      <span style={{ width: '100%', fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)', marginBottom: '4px' }}>학생에게 보여질 색상 팔레트 미리보기</span>
+                      {COLOR_PALETTE.map(c => (
+                        <div key={c.value} title={c.label} style={{ width: '28px', height: '28px', borderRadius: '50%', background: c.value, border: '2px solid rgba(0,0,0,0.12)', cursor: 'default' }} />
+                      ))}
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <input

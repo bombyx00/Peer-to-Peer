@@ -22,9 +22,10 @@ export interface Group {
 
 export interface Question {
   id: string;
-  type: 'rating' | 'slider' | 'text';
+  type: 'rating' | 'slider' | 'text' | 'color' | 'choice-single' | 'choice-multiple';
   questionText: string;
   required: boolean;
+  options?: string[]; // 객관식 보기 목록 (choice-single, choice-multiple 전용)
 }
 
 export interface Project {
@@ -45,7 +46,7 @@ export interface Evaluation {
   projectId: string;
   evaluatorId: string;
   evaluateeId: string;
-  answers: { [questionId: string]: string | number };
+  answers: { [questionId: string]: string | number | string[] }; // string[]은 복수선택용
   aiFeedback?: string;
   submittedAt: string;
 }

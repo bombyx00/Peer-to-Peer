@@ -388,6 +388,141 @@ export const StudentEvaluation: React.FC = () => {
                         onChange={(e) => handleValueChange(selectedTargetId, q.id, e.target.value)}
                       />
                     )}
+
+                    {/* Question Type: Color 🎨 */}
+                    {q.type === 'color' && (
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '6px' }}>
+                        {[
+                          { label: '빨강', value: '#ef4444' },
+                          { label: '주황', value: '#f97316' },
+                          { label: '노랑', value: '#eab308' },
+                          { label: '초록', value: '#22c55e' },
+                          { label: '파랑', value: '#3b82f6' },
+                          { label: '남색', value: '#6366f1' },
+                          { label: '보라', value: '#a855f7' },
+                          { label: '흰색', value: '#ffffff' },
+                          { label: '검정', value: '#1e293b' },
+                          { label: '회색', value: '#94a3b8' },
+                        ].map(c => {
+                          const isSelected = value === c.value;
+                          return (
+                            <button
+                              key={c.value}
+                              type="button"
+                              title={c.label}
+                              onClick={() => handleValueChange(selectedTargetId, q.id, c.value)}
+                              style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                background: c.value,
+                                border: isSelected ? '3px solid var(--primary)' : '2px solid rgba(0,0,0,0.15)',
+                                cursor: 'pointer',
+                                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                                boxShadow: isSelected ? '0 0 0 3px rgba(79,70,229,0.3)' : '0 2px 6px rgba(0,0,0,0.1)',
+                                transform: isSelected ? 'scale(1.2)' : 'scale(1)',
+                              }}
+                              onMouseEnter={e => (e.currentTarget.style.transform = isSelected ? 'scale(1.2)' : 'scale(1.1)')}
+                              onMouseLeave={e => (e.currentTarget.style.transform = isSelected ? 'scale(1.2)' : 'scale(1)')}
+                            />
+                          );
+                        })}
+                        {value && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px' }}>
+                            <div style={{ width: '18px', height: '18px', borderRadius: '4px', background: value as string, border: '1px solid rgba(0,0,0,0.15)' }} />
+                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'var(--font-joseon)' }}>
+                              {[
+                                { label: '빨강', value: '#ef4444' }, { label: '주황', value: '#f97316' },
+                                { label: '노랑', value: '#eab308' }, { label: '초록', value: '#22c55e' },
+                                { label: '파랑', value: '#3b82f6' }, { label: '남색', value: '#6366f1' },
+                                { label: '보라', value: '#a855f7' }, { label: '흰색', value: '#ffffff' },
+                                { label: '검정', value: '#1e293b' }, { label: '회색', value: '#94a3b8' },
+                              ].find(c => c.value === value)?.label || ''} 선택됨
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Question Type: Choice Single 🔘 */}
+                    {q.type === 'choice-single' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                        {(q.options || []).map((opt, oi) => {
+                          const isSelected = value === opt;
+                          return (
+                            <button
+                              key={oi}
+                              type="button"
+                              onClick={() => handleValueChange(selectedTargetId, q.id, isSelected ? '' : opt)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '10px',
+                                padding: '10px 14px', borderRadius: '10px', textAlign: 'left',
+                                background: isSelected ? 'var(--primary-light)' : 'rgba(255,255,255,0.5)',
+                                border: isSelected ? '1.5px solid var(--primary)' : '1px solid var(--glass-border)',
+                                color: isSelected ? 'var(--primary)' : 'var(--text-primary)',
+                                fontWeight: isSelected ? 700 : 400,
+                                cursor: 'pointer', transition: 'all 0.15s ease',
+                                fontSize: '14px', fontFamily: 'var(--font-joseon)',
+                              }}
+                            >
+                              <span style={{
+                                width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
+                                border: isSelected ? '5px solid var(--primary)' : '2px solid #cbd5e1',
+                                background: 'white', transition: 'all 0.15s ease',
+                              }} />
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Question Type: Choice Multiple ☑️ */}
+                    {q.type === 'choice-multiple' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                        {(q.options || []).map((opt, oi) => {
+                          const selected: string[] = Array.isArray(value) ? (value as string[]) : [];
+                          const isSelected = selected.includes(opt);
+                          const toggle = () => {
+                            const next = isSelected ? selected.filter(v => v !== opt) : [...selected, opt];
+                            handleValueChange(selectedTargetId, q.id, next as any);
+                          };
+                          return (
+                            <button
+                              key={oi}
+                              type="button"
+                              onClick={toggle}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '10px',
+                                padding: '10px 14px', borderRadius: '10px', textAlign: 'left',
+                                background: isSelected ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.5)',
+                                border: isSelected ? '1.5px solid var(--success)' : '1px solid var(--glass-border)',
+                                color: isSelected ? '#059669' : 'var(--text-primary)',
+                                fontWeight: isSelected ? 700 : 400,
+                                cursor: 'pointer', transition: 'all 0.15s ease',
+                                fontSize: '14px', fontFamily: 'var(--font-joseon)',
+                              }}
+                            >
+                              <span style={{
+                                width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
+                                border: isSelected ? 'none' : '2px solid #cbd5e1',
+                                background: isSelected ? 'var(--success)' : 'white',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.15s ease',
+                              }}>
+                                {isSelected && <span style={{ color: 'white', fontSize: '12px', fontWeight: 800 }}>✓</span>}
+                              </span>
+                              {opt}
+                            </button>
+                          );
+                        })}
+                        {Array.isArray(value) && (value as string[]).length > 0 && (
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)', marginTop: '2px' }}>
+                            {(value as string[]).length}개 선택됨
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
