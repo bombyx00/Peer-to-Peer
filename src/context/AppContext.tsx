@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { mockStorage } from '../services/mockStorage';
-import type { Student, Project, Group, Question, Evaluation } from '../services/mockStorage';
-import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails, deleteProjectFromSupabase, clearAllCloudData, fetchAllStudentsFromSupabase, fetchAllProjectsFromSupabase, fetchAllEvaluationsFromSupabase, deleteEvaluationFromSupabase } from '../services/supabase';
+import type { Student, Project, Group, Question, Evaluation, Roster } from '../services/mockStorage';
+import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails, deleteProjectFromSupabase, clearAllCloudData, fetchAllStudentsFromSupabase, fetchAllProjectsFromSupabase, fetchAllEvaluationsFromSupabase, deleteEvaluationFromSupabase, syncRostersToSupabase, fetchAllRostersFromSupabase } from '../services/supabase';
 import { isGoogleSheetsConfigured, appendEvaluationToSheet } from '../services/sheets';
 import { isGeminiConfigured, generateComprehensiveAIFeedback } from '../services/gemini';
 
@@ -749,6 +749,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         students,
         projects,
         evaluations,
+        rosters,
+        selectedRosterId,
+        setSelectedRosterId,
+        createRoster,
+        deleteRoster,
         cloudConnected,
         loginAsStudent,
         loginAsStudentWithCode,
