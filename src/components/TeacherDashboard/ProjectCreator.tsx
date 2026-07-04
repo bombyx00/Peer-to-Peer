@@ -232,7 +232,7 @@ export const ProjectCreator: React.FC = () => {
           {/* Questions designer */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <label style={{ fontSize: '23px', fontFamily: 'var(--font-yeongwol)' }}>평가 문항 설계</label>
+              <label style={{ fontSize: '23px', fontFamily: 'var(--font-yeongwol)', fontWeight: 'bold' }}>평가 문항 설계</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   type="button"
