@@ -10,6 +10,7 @@ interface User {
   studentInfo?: Student;
   teacherInfo?: { email: string; name: string };
   currentProjectId?: string;
+  teacherEmail?: string;
 }
 
 interface AppContextType {
@@ -126,8 +127,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let email = getTeacherEmail();
     
     // If user is a student, determine which teacher space they belong to
-    if (!email && user?.role === 'student' && user.currentProjectId) {
-      email = findTeacherEmailByProjectId(user.currentProjectId);
+    if (!email && user?.role === 'student') {
+      email = user.teacherEmail || findTeacherEmailByProjectId(user.currentProjectId || '');
     }
     
     // 이메일이 없는 경우 (로그아웃 상태 또는 격리 공간을 찾지 못한 경우) 데이터 조회 방지 및 리셋
@@ -346,6 +347,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           rosterId: found.rosterId || 'roster-default'
         },
         currentProjectId: matchedProject.id,
+        teacherEmail: foundTeacherEmail,
       };
       setUser(loggedUser);
       localStorage.setItem('peer_eval_current_user', JSON.stringify(loggedUser));
