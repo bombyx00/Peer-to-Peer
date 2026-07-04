@@ -153,9 +153,11 @@ export const GroupManager: React.FC = () => {
 
   // Find students not assigned to any group in the current project (Scoped to the project's roster)
   const assignedIds = groups.reduce<string[]>((acc, g) => [...acc, ...g.memberIds], []);
-  const targetRosterId = currentProject?.rosterId || 'roster-default';
+  // selectedCategoryRosterId를 기준으로 미배정 목록 계산 (명단 불러오기 즉시 반영)
+  const targetRosterId = selectedCategoryRosterId || currentProject?.rosterId || 'roster-default';
   const rosterStudents = students.filter((s) => s.rosterId === targetRosterId);
   const unassignedStudents = rosterStudents.filter((s) => !assignedIds.includes(s.id));
+
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
