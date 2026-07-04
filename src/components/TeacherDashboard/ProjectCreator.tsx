@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { Question, Project } from '../../services/mockStorage';
-import { Plus, Trash2, Calendar, FileText, Settings, ChevronUp, ChevronDown, Edit } from 'lucide-react';
+import { Plus, Trash2, Calendar, FileText, Settings, ChevronUp, ChevronDown, Edit, Copy } from 'lucide-react';
 
 const getDefaultPlaceholder = (type: 'rating' | 'slider' | 'text') => {
   const defaultTexts = {
@@ -67,6 +67,21 @@ export const ProjectCreator: React.FC = () => {
     setTitle(project.title);
     setDescription(project.description);
     setQuestions(project.questions);
+    setSelfEvalEnabled(project.selfEvalEnabled);
+    setProjectRosterId(project.rosterId || 'roster-default');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDuplicate = (project: Project) => {
+    // 사본 만들기: 폼에 기존 프로젝트 내용을 채우되, 새 프로젝트로 등록되도록 editingProjectId는 null 유지
+    setEditingProjectId(null);
+    setTitle(`${project.title} (사본)`);
+    setDescription(project.description);
+    // 문항 ID는 새로 발급하여 충돌 방지
+    setQuestions(project.questions.map(q => ({
+      ...q,
+      id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    })));
     setSelfEvalEnabled(project.selfEvalEnabled);
     setProjectRosterId(project.rosterId || 'roster-default');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -445,6 +460,27 @@ export const ProjectCreator: React.FC = () => {
                       title="프로젝트 수정"
                     >
                       <Edit size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDuplicate(proj)}
+                      className="btn btn-secondary"
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '11px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        color: '#059669',
+                        background: 'rgba(16, 185, 129, 0.06)',
+                        borderRadius: '8px'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(16, 185, 129, 0.12)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(16, 185, 129, 0.06)')}
+                      title="사본 만들기"
+                    >
+                      <Copy size={13} />
                     </button>
                     <button
                       onClick={() => {
