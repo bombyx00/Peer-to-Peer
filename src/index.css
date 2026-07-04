@@ -274,3 +274,36 @@ small,
 .spin {
   animation: spin 1s linear infinite;
 }
+
+/* 개인정보 처리방침 위탁 테이블 스타일 */
+.privacy-consignment-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  font-family: var(--font-joseon);
+  text-align: left;
+}
+
+.privacy-consignment-table th {
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 10px 14px;
+  font-weight: 700;
+  border-bottom: 2px solid rgba(79, 70, 229, 0.15);
+}
+
+.privacy-consignment-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+}
+
+.privacy-consignment-table tr:last-child td {
+  border-bottom: none;
+}

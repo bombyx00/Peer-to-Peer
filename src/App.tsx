@@ -38,8 +38,9 @@ const MainApp: React.FC = () => {
           <h3 
             key={index} 
             style={{ 
-              fontSize: '15px', 
-              fontWeight: 700, 
+              fontSize: '17px', 
+              fontWeight: 'bold', 
+              fontFamily: 'var(--font-yeongwol)',
               marginTop: '20px', 
               marginBottom: '10px', 
               color: 'var(--text-main)',
@@ -59,6 +60,18 @@ const MainApp: React.FC = () => {
         return <hr key={index} style={{ border: 'none', borderTop: '1px solid var(--glass-border)', margin: '20px 0' }} />;
       }
       
+      // 2.5 Table parsing
+      if (trimmed.startsWith('<table')) {
+        return (
+          <div 
+            key={index} 
+            className="table-container"
+            style={{ margin: '16px 0', overflowX: 'auto' }}
+            dangerouslySetInnerHTML={{ __html: trimmed }}
+          />
+        );
+      }
+      
       // 3. Bold text parsing e.g., **Text**
       let content: React.ReactNode = line;
       if (line.includes('**')) {
@@ -70,36 +83,69 @@ const MainApp: React.FC = () => {
         );
       }
       
+      // 3.5 Circle numbers list (e.g. ①, ②) - Outdenting/Indenting text below
+      if (trimmed.match(/^[①-⑩]/)) {
+        const marker = trimmed.charAt(0);
+        const bodyText = trimmed.slice(1).trim();
+        
+        let subContent: React.ReactNode = bodyText;
+        if (bodyText.includes('**')) {
+          const parts = bodyText.split('**');
+          subContent = parts.map((part, pIdx) => 
+            pIdx % 2 === 1 
+              ? <strong key={pIdx} style={{ fontWeight: 700, color: 'var(--primary)' }}>{part}</strong> 
+              : part
+          );
+        }
+
+        return (
+          <p 
+            key={index} 
+            style={{ 
+              margin: '6px 0', 
+              paddingLeft: '22px', 
+              textIndent: '-22px', 
+              fontSize: '13px', 
+              color: 'var(--text-secondary)', 
+              lineHeight: '1.6',
+              textAlign: 'justify'
+            }}
+          >
+            <span style={{ fontWeight: 'bold', color: 'var(--primary)', marginRight: '6px' }}>{marker}</span>
+            {subContent}
+          </p>
+        );
+      }
+      
       // 4. Bullet lists e.g., 1. Item or - Item
       if (trimmed.match(/^\d+\./)) {
         return (
-          <p key={index} style={{ margin: '8px 0', paddingLeft: '16px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+          <p key={index} style={{ margin: '6px 0', paddingLeft: '16px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', textAlign: 'justify' }}>
             {content}
           </p>
         );
       }
       if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-        // Safe check if content is array or string
         const bulletText = typeof content === 'string' 
           ? content.slice(2) 
-          : React.Children.toArray(content).slice(1); // Skip the "- " part roughly
+          : React.Children.toArray(content).slice(1);
           
         return (
-          <p key={index} style={{ margin: '8px 0', paddingLeft: '20px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', position: 'relative' }}>
+          <p key={index} style={{ margin: '6px 0', paddingLeft: '20px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', position: 'relative', textAlign: 'justify' }}>
             <span style={{ position: 'absolute', left: '8px', color: 'var(--primary)' }}>•</span>
             {bulletText}
           </p>
         );
       }
-
+ 
       // 5. Empty line
       if (!trimmed) {
         return <div key={index} style={{ height: '8px' }} />;
       }
-
+ 
       // 6. Normal paragraph
       return (
-        <p key={index} style={{ margin: '8px 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+        <p key={index} style={{ margin: '8px 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', textAlign: 'justify' }}>
           {content}
         </p>
       );
@@ -200,7 +246,7 @@ const MainApp: React.FC = () => {
             >
               ✕
             </button>
-            <div style={{ fontSize: '13px', color: 'var(--text-main)', textAlign: 'left' }}>
+            <div style={{ fontSize: '13px', color: 'var(--text-main)', textAlign: 'justify' }}>
               {parseMarkdownToReact(showModal === 'terms' ? TERMS_OF_SERVICE : PRIVACY_POLICY)}
             </div>
           </div>
