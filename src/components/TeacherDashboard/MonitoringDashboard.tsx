@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Download, CheckCircle, XCircle, BarChart2, RefreshCw } from 'lucide-react';
+import { Download, CheckCircle, XCircle, BarChart2, RefreshCw, Copy, Check } from 'lucide-react';
 
 export const MonitoringDashboard: React.FC = () => {
   const { students, projects, evaluations, resetAll, reloadData, cloudConnected, generateAndSaveAITotalFeedback } = useApp();
@@ -8,6 +8,24 @@ export const MonitoringDashboard: React.FC = () => {
   const [showQRModal, setShowQRModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [generatingAIs, setGeneratingAIs] = useState<{ [studentId: string]: boolean }>({});
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    }).catch(() => {
+      // 클립보드 API 미지원 폴백
+      const el = document.createElement('textarea');
+      el.value = code;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    });
+  };
 
   // Background polling and local storage sync for real-time reactivity
   useEffect(() => {
@@ -304,12 +322,24 @@ export const MonitoringDashboard: React.FC = () => {
                   {projectToMonitor.accessCode}
                 </span>
               </div>
-              <button 
-                onClick={() => setShowQRModal(true)} 
-                className="btn btn-secondary" 
-                style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontFamily: 'var(--font-joseon)' }}
+              <button
+                onClick={() => handleCopyCode(projectToMonitor.accessCode)}
+                className="btn btn-secondary"
+                style={{
+                  padding: '12px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '14px',
+                  fontFamily: 'var(--font-joseon)',
+                  background: codeCopied ? 'rgba(16, 185, 129, 0.1)' : undefined,
+                  color: codeCopied ? 'var(--success)' : undefined,
+                  border: codeCopied ? '1px solid rgba(16,185,129,0.3)' : undefined,
+                  transition: 'all 0.2s ease'
+                }}
               >
-                QR코드 크게 띄우기
+                {codeCopied ? <Check size={15} /> : <Copy size={15} />}
+                {codeCopied ? '복사됨!' : '인증번호 복사'}
               </button>
             </div>
           </div>

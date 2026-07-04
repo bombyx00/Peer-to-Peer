@@ -78,7 +78,8 @@ export const GroupManager: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [groups, setGroups] = useState<Group[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
-  const [selectedCategoryRosterId, setSelectedCategoryRosterId] = useState('');
+  const [selectedCategoryRosterId, setSelectedCategoryRosterId] = useState(''); // 드롭다운 선택값 (미리보기용)
+  const [activeRosterId, setActiveRosterId] = useState(''); // 실제 적용된 roster (버튼 클릭 시에만 변경)
 
   const currentProject = projects.find((p) => p.id === selectedProjectId);
 
@@ -91,7 +92,9 @@ export const GroupManager: React.FC = () => {
   useEffect(() => {
     if (currentProject) {
       setGroups(currentProject.groups || []);
-      setSelectedCategoryRosterId(currentProject.rosterId || 'roster-default');
+      const rosterId = currentProject.rosterId || 'roster-default';
+      setSelectedCategoryRosterId(rosterId);
+      setActiveRosterId(rosterId); // 프로젝트 변경 시 적용 roster도 함께 초기화
     } else {
       setGroups([]);
     }
@@ -121,6 +124,7 @@ export const GroupManager: React.FC = () => {
       }));
 
       setGroups(updatedGroups);
+      setActiveRosterId(selectedCategoryRosterId); // 버튼 클릭 시에만 적용 roster 변경
       updateProjectGroups(selectedProjectId, updatedGroups);
       alert(`성공적으로 [${rosterName}] 명단 카테고리를 로드했습니다.`);
     }
@@ -153,8 +157,8 @@ export const GroupManager: React.FC = () => {
 
   // Find students not assigned to any group in the current project (Scoped to the project's roster)
   const assignedIds = groups.reduce<string[]>((acc, g) => [...acc, ...g.memberIds], []);
-  // selectedCategoryRosterId를 기준으로 미배정 목록 계산 (명단 불러오기 즉시 반영)
-  const targetRosterId = selectedCategoryRosterId || currentProject?.rosterId || 'roster-default';
+  // activeRosterId 기준으로 미배정 목록 계산 (명단 불러오기 버튼 클릭 시에만 변경)
+  const targetRosterId = activeRosterId || currentProject?.rosterId || 'roster-default';
   const rosterStudents = students.filter((s) => s.rosterId === targetRosterId);
   const unassignedStudents = rosterStudents.filter((s) => !assignedIds.includes(s.id));
 
