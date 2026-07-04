@@ -70,8 +70,8 @@ export const syncStudentsToSupabase = async (students: any[], _teacherEmail: str
   }
 };
 
-// 프로젝트 및 모둠 정보 동기화 (roster_id 400 에러 펄백 대응)
-export const syncProjectToSupabase = async (project: any, _teacherEmail: string) => {
+// 프로젝트 및 모둠 정보 동기화 (teacher_email 필드 추가로 다중 교사 격리 보장)
+export const syncProjectToSupabase = async (project: any, teacherEmail: string) => {
   if (!isSupabaseConfigured()) return false;
   try {
     const buildPayload = (includeRoster: boolean) => {
@@ -84,7 +84,8 @@ export const syncProjectToSupabase = async (project: any, _teacherEmail: string)
         groups: typeof project.groups === 'string' ? project.groups : JSON.stringify(project.groups),
         active: project.active,
         createdAt: project.createdAt,
-        accessCode: project.accessCode
+        accessCode: project.accessCode,
+        teacher_email: teacherEmail  // 교사 식별 필드 추가 (다중 교사 격리 핵심)
       };
       if (includeRoster) {
         payload.roster_id = project.rosterId || 'roster-default';
@@ -362,19 +363,12 @@ export const deleteEvaluationFromSupabase = async (
 };
 
 
-// Supabase DB에 저장된 전체 프로젝트 조회 (교사 이메일 필터링 추가)
+// Supabase DB에 저장된 전체 프로젝트 조회 (teacher_email로 직접 필터 - roster 체인 의존 제거)
 export const fetchAllProjectsFromSupabase = async (teacherEmail: string): Promise<any[]> => {
   if (!isSupabaseConfigured()) return [];
   try {
-    // 1. 먼저 해당 교사의 rosters를 가져옵니다.
-    const rosters = await fetchAllRostersFromSupabase(teacherEmail);
-    if (rosters.length === 0) {
-      return [];
-    }
-
-    // 2. rosters의 ID 목록을 in 조건으로 묶어 프로젝트 목록을 격리 조회합니다.
-    const rosterIds = rosters.map(r => r.id).join(',');
-    const response = await fetch(`${supabaseUrl}/rest/v1/projects?roster_id=in.(${encodeURIComponent(rosterIds)})`, {
+    // teacher_email로 직접 조회 (roster_id 체인 의존 없이 다중 교사 격리 보장)
+    const response = await fetch(`${supabaseUrl}/rest/v1/projects?teacher_email=eq.${encodeURIComponent(teacherEmail)}`, {
       method: 'GET',
       headers: {
         'apikey': supabaseAnonKey,
@@ -383,7 +377,24 @@ export const fetchAllProjectsFromSupabase = async (teacherEmail: string): Promis
       }
     });
     if (response.ok) {
-      return await response.json();
+      const data = await response.json();
+      if (data.length > 0) return data;
+    }
+
+    // 폴백: teacher_email 컬럼이 없는 구버전 DB의 경우 roster 체인으로 시도
+    const rosters = await fetchAllRostersFromSupabase(teacherEmail);
+    if (rosters.length === 0) return [];
+    const rosterIds = rosters.map((r: any) => r.id).join(',');
+    const fallbackResponse = await fetch(`${supabaseUrl}/rest/v1/projects?roster_id=in.(${encodeURIComponent(rosterIds)})`, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (fallbackResponse.ok) {
+      return await fallbackResponse.json();
     }
     return [];
   } catch (error) {
@@ -392,29 +403,15 @@ export const fetchAllProjectsFromSupabase = async (teacherEmail: string): Promis
   }
 };
 
-// Supabase DB에 저장된 전체 평가 리스트 조회 (교사 이메일 필터링 추가)
+// Supabase DB에 저장된 전체 평가 리스트 조회 (teacher_email → projects → evaluations)
 export const fetchAllEvaluationsFromSupabase = async (teacherEmail: string): Promise<any[]> => {
   if (!isSupabaseConfigured()) return [];
   try {
-    // 1. rosters 구하기
-    const rosters = await fetchAllRostersFromSupabase(teacherEmail);
-    if (rosters.length === 0) return [];
-
-    // 2. projects 구하기
-    const rosterIds = rosters.map(r => r.id).join(',');
-    const projResponse = await fetch(`${supabaseUrl}/rest/v1/projects?roster_id=in.(${encodeURIComponent(rosterIds)})`, {
-      method: 'GET',
-      headers: {
-        'apikey': supabaseAnonKey,
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    if (!projResponse.ok) return [];
-    const projects = await projResponse.json();
+    // 1. teacher_email로 projects 직접 조회 (roster 체인 의존 제거)
+    const projects = await fetchAllProjectsFromSupabase(teacherEmail);
     if (projects.length === 0) return [];
 
-    // 3. evaluations 구하기 (project_id로 in 쿼리 조회)
+    // 2. evaluations 구하기 (project_id로 in 쿼리 조회)
     const projectIds = projects.map((p: any) => p.id).join(',');
     const response = await fetch(`${supabaseUrl}/rest/v1/evaluations?project_id=in.(${encodeURIComponent(projectIds)})`, {
       method: 'GET',
