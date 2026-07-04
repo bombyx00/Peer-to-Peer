@@ -299,7 +299,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           active: cloudProj.active,
           createdAt: cloudProj.createdAt,
           accessCode: cloudProj.accessCode,
+          rosterId: cloudProj.roster_id || 'roster-default',
         };
+        foundTeacherEmail = cloudProj.teacher_email;
       }
     }
 

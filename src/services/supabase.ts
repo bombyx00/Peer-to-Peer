@@ -13,7 +13,7 @@ export const isSupabaseConfigured = () => {
 };
 
 // 학생 데이터를 DB에 동기화 (roster_id 400 에러 펄백 대응)
-export const syncStudentsToSupabase = async (students: any[], teacherEmail: string) => {
+export const syncStudentsToSupabase = async (students: any[], _teacherEmail: string) => {
   if (!isSupabaseConfigured()) {
     console.warn('Supabase 환경변수가 설정되지 않아 로컬 모드로 동작합니다.');
     return false;
@@ -28,8 +28,7 @@ export const syncStudentsToSupabase = async (students: any[], teacherEmail: stri
           classNum: s.classNum,
           number: s.number,
           name: s.name,
-          email: s.email,
-          teacher_email: teacherEmail
+          email: s.email
         };
         if (includeRoster) {
           payload.roster_id = s.rosterId || 'roster-default';
@@ -284,7 +283,15 @@ export const fetchProjectById = async (projectId: string): Promise<any | null> =
 export const fetchAllStudentsFromSupabase = async (teacherEmail: string): Promise<any[]> => {
   if (!isSupabaseConfigured()) return [];
   try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/students?teacher_email=eq.${encodeURIComponent(teacherEmail)}`, {
+    // 1. 먼저 해당 교사의 rosters를 가져옵니다.
+    const rosters = await fetchAllRostersFromSupabase(teacherEmail);
+    if (rosters.length === 0) {
+      return [];
+    }
+
+    // 2. rosters의 ID 목록을 in 조건으로 묶어 학생 데이터를 격리 조회합니다.
+    const rosterIds = rosters.map(r => r.id).join(',');
+    const response = await fetch(`${supabaseUrl}/rest/v1/students?roster_id=in.(${encodeURIComponent(rosterIds)})`, {
       method: 'GET',
       headers: {
         'apikey': supabaseAnonKey,
