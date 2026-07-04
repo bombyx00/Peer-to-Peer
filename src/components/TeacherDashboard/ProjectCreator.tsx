@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { Question, Project } from '../../services/mockStorage';
-import { Plus, Trash2, Calendar, FileText, Settings, ChevronUp, ChevronDown, Edit, Copy, GripVertical, CheckSquare, List } from 'lucide-react';
+import { Plus, Trash2, Calendar, FileText, Settings, ChevronUp, ChevronDown, Edit, Copy } from 'lucide-react';
 
 const COLOR_PALETTE = [
   { label: '빨강', value: '#ef4444' },
