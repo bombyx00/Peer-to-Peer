@@ -126,9 +126,14 @@ h1, h2, h3, h4, h5, h6 {
 /* 조선100년체: 작은 본문 텍스트 전역 기본값 */
 p,
 label,
-small,
+small {
+  font-family: var(--font-joseon);
+}
+
+/* placeholder: 더 흐리게 처리해 미입력 상태를 명확히 구분 */
 .glass-input::placeholder {
   font-family: var(--font-joseon);
+  color: #b8c4d0;
 }
 
 /* Glassmorphism Card Utility */

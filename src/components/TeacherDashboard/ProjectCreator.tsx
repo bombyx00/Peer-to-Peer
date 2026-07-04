@@ -5,9 +5,9 @@ import { Plus, Trash2, Calendar, FileText, Settings, ChevronUp, ChevronDown, Edi
 
 const getDefaultPlaceholder = (type: 'rating' | 'slider' | 'text') => {
   const defaultTexts = {
-    rating: '이 모둠원은 역할을 책임감 있게 수행했습니까?',
-    slider: '이 모둠원의 전반적인 기여도는 몇 %입니까?',
-    text: '이 모둠원의 가장 뛰어났던 점이나 보완할 점을 자유롭게 기술해주세요.',
+    rating: '질문 예: 이 모둠원은 역할을 책임감 있게 수행했습니까?',
+    slider: '질문 예: 이 모둠원의 전반적인 기여도는 몇 %입니까?',
+    text: '질문 예: 이 모둠원의 가장 뛰어났던 점이나 보완할 점을 자유롭게 기술해주세요.',
   };
   return defaultTexts[type];
 };

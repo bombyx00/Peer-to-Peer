@@ -313,7 +313,7 @@ export const MonitoringDashboard: React.FC = () => {
             <span style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 700, letterSpacing: '1px', fontFamily: 'var(--font-joseon)' }}>STUDENT ACCESS INFO</span>
             <h3 style={{ fontSize: '24px', marginTop: '4px', marginBottom: '8px', fontFamily: 'var(--font-yeongwol)' }}>학생 접속 안내</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
-              선생님이 이 화면을 빔 프로젝터나 대형 모니터에 띄워주시면, 학생들이 **QR 코드**를 스캔하거나 아래 **인증번호**를 사용해 손쉽게 자기 학적 정보를 넣고 접속할 수 있습니다.
+              선생님이 이 화면을 빔 프로젝터나 대형 모니터에 띄워주시면, 학생들이 QR 코드를 스캔하거나 아래 인증번호를 사용해 손쉽게 접속할 수 있습니다.
             </p>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <div style={{ background: 'white', padding: '8px 16px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column' }}>
@@ -324,7 +324,7 @@ export const MonitoringDashboard: React.FC = () => {
               </div>
               <button
                 onClick={() => handleCopyCode(projectToMonitor.accessCode)}
-                className="btn btn-secondary"
+                className="btn"
                 style={{
                   padding: '12px 20px',
                   display: 'flex',
@@ -332,10 +332,12 @@ export const MonitoringDashboard: React.FC = () => {
                   gap: '8px',
                   fontSize: '14px',
                   fontFamily: 'var(--font-joseon)',
-                  background: codeCopied ? 'rgba(16, 185, 129, 0.1)' : undefined,
-                  color: codeCopied ? 'var(--success)' : undefined,
-                  border: codeCopied ? '1px solid rgba(16,185,129,0.3)' : undefined,
-                  transition: 'all 0.2s ease'
+                  background: codeCopied ? 'rgba(16, 185, 129, 0.12)' : 'rgba(79, 70, 229, 0.08)',
+                  color: codeCopied ? 'var(--success)' : 'var(--primary)',
+                  border: codeCopied ? '1px solid rgba(16,185,129,0.35)' : '1px solid rgba(79,70,229,0.25)',
+                  borderRadius: '12px',
+                  transition: 'all 0.2s ease',
+                  fontWeight: 600
                 }}
               >
                 {codeCopied ? <Check size={15} /> : <Copy size={15} />}
