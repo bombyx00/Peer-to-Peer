@@ -289,10 +289,13 @@ export const StudentManager: React.FC = () => {
                 <FileSpreadsheet size={18} />
                 엑셀 CSV 파일 업로드하기
               </button>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)', textAlign: 'center', marginTop: '-8px' }}>
+                양식을 다운로드하여 정보 입력 후, CSV(쉼표로 분리) 형식으로 저장
+              </p>
 
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0' }}>
                 <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)', width: '100%' }} />
-                <span style={{ position: 'absolute', background: 'var(--glass-bg)', padding: '0 12px', fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-joseon)' }}>
+                <span style={{ position: 'absolute', background: 'var(--glass-bg)', padding: '0 12px', fontSize: '16px', color: 'var(--text-primary)', fontFamily: 'var(--font-yeongwol)' }}>
                   또는 직접 텍스트 붙여넣기
                 </span>
               </div>
