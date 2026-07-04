@@ -168,16 +168,18 @@ export const fetchProjectByAccessCode = async (accessCode: string): Promise<any 
 };
 
 // 학적 정보를 통한 학생 조회
+// 학적 정보를 통한 학생 조회 (rosterId 필터링 추가로 중복 학번 간섭 방지)
 export const fetchStudentByDetails = async (
   grade: string,
   classNum: string,
   number: string,
-  name: string
+  name: string,
+  rosterId: string
 ): Promise<any | null> => {
   if (!isSupabaseConfigured()) return null;
   try {
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/students?grade=eq.${grade.trim()}&classNum=eq.${classNum.trim()}&number=eq.${number.trim()}&name=eq.${name.trim()}`,
+      `${supabaseUrl}/rest/v1/students?grade=eq.${grade.trim()}&classNum=eq.${classNum.trim()}&number=eq.${number.trim()}&name=eq.${name.trim()}&roster_id=eq.${encodeURIComponent(rosterId)}`,
       {
         method: 'GET',
         headers: {

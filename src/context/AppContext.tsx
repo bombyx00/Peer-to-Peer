@@ -324,7 +324,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 4. If not found in local student roster but Supabase is configured, fetch from cloud DB!
     if (!found && cloudConnected.supabase) {
-      const cloudStudent = await fetchStudentByDetails(grade, classNum, number, name);
+      const cloudStudent = await fetchStudentByDetails(grade, classNum, number, name, targetRosterId);
       if (cloudStudent && (cloudStudent.roster_id || 'roster-default') === targetRosterId) {
         found = {
           id: cloudStudent.id,
