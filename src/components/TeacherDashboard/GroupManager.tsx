@@ -104,15 +104,6 @@ export const GroupManager: React.FC = () => {
     const rosterName = targetRoster ? targetRoster.name : '기본 명단';
 
     if (confirm(`[${rosterName}] 카테고리로 변경하시겠습니까?\n이 프로젝트의 기존 모둠 배정 중 이 카테고리에 속하지 않는 학생 정보는 제거되며, 새 카테고리의 학생들이 대기열에 추가됩니다.`)) {
-      updateProject(
-        currentProject.id,
-        currentProject.title,
-        currentProject.description,
-        currentProject.questions,
-        currentProject.selfEvalEnabled,
-        newRosterId
-      );
-
       const rosterStudents = students.filter(s => s.rosterId === newRosterId);
       const rosterStudentIds = new Set(rosterStudents.map(s => s.id));
 
@@ -121,9 +112,18 @@ export const GroupManager: React.FC = () => {
         memberIds: g.memberIds.filter(id => rosterStudentIds.has(id))
       }));
 
+      updateProject(
+        currentProject.id,
+        currentProject.title,
+        currentProject.description,
+        currentProject.questions,
+        currentProject.selfEvalEnabled,
+        newRosterId,
+        updatedGroups
+      );
+
       setGroups(updatedGroups);
       setSelectedCategoryRosterId(newRosterId);
-      updateProjectGroups(selectedProjectId, updatedGroups);
       alert(`성공적으로 [${rosterName}] 명단 카테고리를 로드했습니다.`);
     }
   };

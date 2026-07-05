@@ -48,7 +48,8 @@ interface AppContextType {
     description: string,
     questions: Question[],
     selfEvalEnabled: boolean,
-    rosterId: string
+    rosterId: string,
+    groups?: Group[]
   ) => void;
   updateProjectGroups: (projectId: string, groups: Group[]) => void;
   deleteProject: (projectId: string) => void;
@@ -502,11 +503,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     description: string,
     questions: Question[],
     selfEvalEnabled: boolean,
-    rosterId: string
+    rosterId: string,
+    groups?: Group[]
   ) => {
     const email = getTeacherEmail();
     const updated = projects.map((p) =>
-      p.id === projectId ? { ...p, title, description, questions, selfEvalEnabled, rosterId } : p
+      p.id === projectId
+        ? {
+            ...p,
+            title,
+            description,
+            questions,
+            selfEvalEnabled,
+            rosterId,
+            groups: groups !== undefined ? groups : p.groups
+          }
+        : p
     );
     setProjects(updated);
     mockStorage.saveProjects(updated, email);
