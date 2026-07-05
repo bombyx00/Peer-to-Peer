@@ -28,16 +28,13 @@ export const appendEvaluationToSheet = async (evaluationData: {
   }
 
   // 1. Google Apps Script Web App URL 방식 (권장: 익명 전송 지원 및 안전성 높음)
+  // GAS 웹앱은 302 리다이렉트를 거치는데, POST로 보내면 리다이렉트 과정에서
+  // 브라우저가 요청을 GET으로 바꾸며 body를 유실시켜 doPost가 아닌 doGet이 호출된다.
+  // 리다이렉트에도 안전하도록 GET + 쿼리 파라미터 방식으로 전송한다.
   if (webAppUrl) {
     try {
-      const response = await fetch(webAppUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain', // GAS CORS 제한 우회를 위해 text/plain 권장
-        },
-        body: JSON.stringify(evaluationData),
-      });
-
+      const url = `${webAppUrl}?data=${encodeURIComponent(JSON.stringify(evaluationData))}`;
+      const response = await fetch(url, { method: 'GET' });
       return response.ok;
     } catch (error) {
       console.error('Google Sheets Apps Script 연동 실패:', error);
