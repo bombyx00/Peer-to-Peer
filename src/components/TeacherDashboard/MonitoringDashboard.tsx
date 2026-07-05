@@ -225,14 +225,17 @@ export const MonitoringDashboard: React.FC = () => {
       });
 
     // UTF-8 with BOM (\uFEFF) to make sure Excel opens the result cleanly without breaking Korean text
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + csvRows.join('\n');
-    const encodedUri = encodeURI(csvContent);
+    // Blob + Object URL 사용 (data: URI + encodeURI는 '#' 문자가 있으면 그 이후 내용이 잘리는 문제가 있음)
+    const csvContent = '\uFEFF' + csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.setAttribute('href', url);
     link.setAttribute('download', `${currentProject.title}_평가결과.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   if (projects.length === 0) {
