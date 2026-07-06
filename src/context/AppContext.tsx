@@ -750,9 +750,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProjects(mockStorage.getProjects(email));
     setEvaluations([]);
 
-    // Cloud Sync: Wipe all cloud DB data if configured
-    if (cloudConnected.supabase) {
-      clearAllCloudData();
+    // Cloud Sync: Wipe this teacher's cloud DB data only if configured
+    if (cloudConnected.supabase && email) {
+      clearAllCloudData(email);
     }
 
     logout();

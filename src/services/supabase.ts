@@ -239,12 +239,49 @@ export const deleteProjectFromSupabase = async (projectId: string): Promise<bool
   }
 };
 
-// Supabase DB의 모든 프로젝트, 학생, 평가 데이터를 청소 (DELETE)
-export const clearAllCloudData = async (): Promise<boolean> => {
+// Supabase DB에서 특정 교사의 프로젝트, 학생, 평가, 명단 데이터만 청소 (DELETE)
+// 주의: teacherEmail 필터 없이 전체 삭제하면 다른 교사의 데이터까지 삭제되므로 반드시 스코프를 지정해야 함
+export const clearAllCloudData = async (teacherEmail?: string): Promise<boolean> => {
   if (!isSupabaseConfigured()) return false;
+  if (!teacherEmail) {
+    console.warn('teacherEmail이 없어 Supabase 클라우드 초기화를 건너뜁니다 (다른 교사 데이터 보호).');
+    return false;
+  }
   try {
-    // 1. projects 테이블 비우기 (PostgREST API에서 전체 삭제를 위해 조건으로 'id=not.is.null' 사용)
-    const resProj = await fetch(`${supabaseUrl}/rest/v1/projects?id=not.is.null`, {
+    const encodedEmail = encodeURIComponent(teacherEmail);
+
+    // 1. 해당 교사의 프로젝트 목록 조회 (teacher_email 필터, roster 체인 폴백 포함)
+    const projects = await fetchAllProjectsFromSupabase(teacherEmail);
+    const projectIds = projects.map((p: any) => p.id).join(',');
+
+    // 2. 해당 교사의 명단(roster) 목록 조회
+    const rosters = await fetchAllRostersFromSupabase(teacherEmail);
+    const rosterIds = rosters.map((r: any) => r.id).join(',');
+
+    // 3. evaluations 삭제 (해당 교사의 project_id 범위만)
+    const resEval = projectIds
+      ? await fetch(`${supabaseUrl}/rest/v1/evaluations?project_id=in.(${encodeURIComponent(projectIds)})`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`
+          }
+        })
+      : { ok: true } as Response;
+
+    // 4. students 삭제 (해당 교사의 roster_id 범위만)
+    const resStud = rosterIds
+      ? await fetch(`${supabaseUrl}/rest/v1/students?roster_id=in.(${encodeURIComponent(rosterIds)})`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`
+          }
+        })
+      : { ok: true } as Response;
+
+    // 5. projects 삭제 (teacher_email 필터)
+    const resProj = await fetch(`${supabaseUrl}/rest/v1/projects?teacher_email=eq.${encodedEmail}`, {
       method: 'DELETE',
       headers: {
         'apikey': supabaseAnonKey,
@@ -252,8 +289,8 @@ export const clearAllCloudData = async (): Promise<boolean> => {
       }
     });
 
-    // 2. students 테이블 비우기
-    const resStud = await fetch(`${supabaseUrl}/rest/v1/students?id=not.is.null`, {
+    // 6. rosters 삭제 (teacher_email 필터)
+    const resRoster = await fetch(`${supabaseUrl}/rest/v1/rosters?teacher_email=eq.${encodedEmail}`, {
       method: 'DELETE',
       headers: {
         'apikey': supabaseAnonKey,
@@ -261,16 +298,7 @@ export const clearAllCloudData = async (): Promise<boolean> => {
       }
     });
 
-    // 3. evaluations 테이블 비우기
-    const resEval = await fetch(`${supabaseUrl}/rest/v1/evaluations?id=not.is.null`, {
-      method: 'DELETE',
-      headers: {
-        'apikey': supabaseAnonKey,
-        'Authorization': `Bearer ${supabaseAnonKey}`
-      }
-    });
-
-    return resProj.ok && resStud.ok && resEval.ok;
+    return resProj.ok && resStud.ok && resEval.ok && resRoster.ok;
   } catch (error) {
     console.error('Supabase 클라우드 전체 초기화 실패:', error);
     return false;
