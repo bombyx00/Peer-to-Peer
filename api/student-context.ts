@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, sendError, AuthError } from './_lib/auth';
-import { getProjectById, getStudentsForRosterIds } from './_lib/supabase';
+import { requireAuth, sendError, AuthError } from './_lib/auth.js';
+import { getProjectById, getStudentsForRosterIds } from './_lib/supabase.js';
 
 // Student-facing equivalent of api/projects.ts + api/students.ts: a logged-in
 // student may only ever see their OWN project and the students in that

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifyGoogleIdToken, signSessionToken, sendError, AuthError } from './_lib/auth';
-import { isSupabaseConfigured, getActiveProjectByAccessCode, findStudentByDetails } from './_lib/supabase';
+import { verifyGoogleIdToken, signSessionToken, sendError, AuthError } from './_lib/auth.js';
+import { isSupabaseConfigured, getActiveProjectByAccessCode, findStudentByDetails } from './_lib/supabase.js';
 
 const INVALID_STUDENT_LOGIN_MESSAGE = '유효하지 않거나 비활성화된 인증번호입니다.';
 

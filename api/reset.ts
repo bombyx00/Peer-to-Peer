@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, sendError } from './_lib/auth';
-import { wipeTeacherData } from './_lib/supabase';
+import { requireAuth, sendError } from './_lib/auth.js';
+import { wipeTeacherData } from './_lib/supabase.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

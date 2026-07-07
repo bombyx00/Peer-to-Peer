@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, sendError, AuthError } from './_lib/auth';
-import { getRosters, upsertRosters } from './_lib/supabase';
+import { requireAuth, sendError, AuthError } from './_lib/auth.js';
+import { getRosters, upsertRosters } from './_lib/supabase.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

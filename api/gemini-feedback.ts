@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth, sendError, AuthError } from './_lib/auth';
+import { requireAuth, sendError, AuthError } from './_lib/auth.js';
 
 const geminiApiKey = process.env.GEMINI_API_KEY || '';
 const isGeminiConfigured = () => geminiApiKey !== '';
