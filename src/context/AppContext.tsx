@@ -1,9 +1,27 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { mockStorage } from '../services/mockStorage';
 import type { Student, Project, Group, Question, Evaluation, Roster } from '../services/mockStorage';
-import { isSupabaseConfigured, syncStudentsToSupabase, syncProjectToSupabase, submitEvaluationToSupabase, fetchProjectByAccessCode, fetchStudentByDetails, deleteProjectFromSupabase, clearAllCloudData, fetchAllStudentsFromSupabase, fetchAllProjectsFromSupabase, fetchAllEvaluationsFromSupabase, deleteEvaluationFromSupabase, syncRostersToSupabase, fetchAllRostersFromSupabase } from '../services/supabase';
+import {
+  checkHealth,
+  getSession,
+  setSession,
+  clearSession,
+  apiLoginTeacher,
+  apiLoginStudent,
+  fetchRosters,
+  syncRosters,
+  fetchStudents,
+  syncStudents,
+  fetchProjects,
+  syncProject,
+  deleteProjectApi,
+  fetchStudentContext,
+  fetchEvaluations,
+  submitEvaluationApi,
+  resetAllApi,
+  fetchGeminiFeedback,
+} from '../services/api';
 import { isGoogleSheetsConfigured, appendEvaluationToSheet } from '../services/sheets';
-import { isGeminiConfigured, generateComprehensiveAIFeedback } from '../services/gemini';
 
 interface User {
   role: 'teacher' | 'student';
@@ -24,7 +42,6 @@ interface AppContextType {
   createRoster: (name: string) => void;
   deleteRoster: (id: string) => void;
   cloudConnected: { supabase: boolean; sheets: boolean; gemini: boolean };
-  loginAsStudent: (email: string) => boolean;
   loginAsStudentWithCode: (
     accessCode: string,
     grade: string,
@@ -32,7 +49,7 @@ interface AppContextType {
     number: string,
     name: string
   ) => Promise<{ success: boolean; error?: string }>;
-  loginAsTeacher: (email: string, name: string) => void;
+  loginAsTeacher: (googleIdToken: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   uploadStudents: (students: Student[]) => void;
   createProject: (
@@ -67,11 +84,22 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+// Derives the UI-facing User shape from the session minted by /api/auth.
+const sessionToUser = (session: ReturnType<typeof getSession>): User | null => {
+  if (!session) return null;
+  if (session.role === 'teacher') {
+    return { role: 'teacher', teacherInfo: { email: session.email, name: session.name } };
+  }
+  return {
+    role: 'student',
+    studentInfo: session.studentInfo,
+    currentProjectId: session.projectId,
+    teacherEmail: session.teacherEmail,
+  };
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('peer_eval_current_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState<User | null>(() => sessionToUser(getSession()));
   const [students, setStudents] = useState<Student[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
@@ -84,138 +112,88 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return user?.role === 'teacher' ? user.teacherInfo?.email : undefined;
   };
 
-  // Helper to find which teacher's space a project belongs to in LocalStorage (for local multi-user testing)
-  const findTeacherEmailByProjectId = (projectId: string): string | undefined => {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('peer_eval_projects_')) {
-        const email = key.replace('peer_eval_projects_', '');
-        const projectsData = localStorage.getItem(key);
-        if (projectsData) {
-          try {
-            const projs = JSON.parse(projectsData);
-            if (projs.some((p: any) => p.id === projectId)) {
-              return email;
-            }
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-    }
-    return undefined;
-  };
-
-  // Check cloud connection and register storage listener
+  // Check cloud connection (via server-side health check — the client no longer
+  // knows the raw Supabase/Gemini env vars) and register storage/session listeners.
   useEffect(() => {
-    setCloudConnected({
-      supabase: isSupabaseConfigured(),
-      sheets: isGoogleSheetsConfigured(),
-      gemini: isGeminiConfigured()
+    checkHealth().then(({ supabase, gemini }) => {
+      setCloudConnected((prev) => ({ ...prev, supabase, gemini }));
     });
+    setCloudConnected((prev) => ({ ...prev, sheets: isGoogleSheetsConfigured() }));
 
     const handleStorageChange = () => {
       reloadData().catch((err) => console.error('Storage 리로드 실패:', err));
     };
+    const handleSessionExpired = () => {
+      logout();
+    };
 
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('session-expired', handleSessionExpired);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('session-expired', handleSessionExpired);
     };
   }, []);
 
-  const reloadData = async () => {
-    let email = getTeacherEmail();
-    
-    // If user is a student, determine which teacher space they belong to
-    if (!email && user?.role === 'student') {
-      email = user.teacherEmail || findTeacherEmailByProjectId(user.currentProjectId || '');
-    }
-    
-    // 이메일이 없는 경우 (로그아웃 상태 또는 격리 공간을 찾지 못한 경우) 데이터 조회 방지 및 리셋
-    if (!email) {
-      setStudents([]);
-      setProjects([]);
-      setEvaluations([]);
-      setRosters([]);
-      setSelectedRosterId('');
-      return;
-    }
-    
+  const mapCloudProject = (cp: any): Project => ({
+    id: cp.id,
+    title: cp.title,
+    description: cp.description,
+    questions: typeof cp.questions === 'string' ? JSON.parse(cp.questions) : cp.questions,
+    selfEvalEnabled: cp.selfEvalEnabled,
+    groups: typeof cp.groups === 'string' ? JSON.parse(cp.groups) : (cp.groups || []),
+    active: cp.active,
+    createdAt: cp.createdAt,
+    accessCode: cp.accessCode,
+    rosterId: cp.roster_id || 'roster-default',
+  });
+
+  const mapCloudStudent = (cs: any): Student => ({
+    id: cs.id,
+    grade: cs.grade,
+    classNum: cs.classNum,
+    number: cs.number,
+    name: cs.name,
+    email: cs.email,
+    rosterId: cs.roster_id || 'roster-default',
+  });
+
+  const mapCloudEvaluation = (ce: any): Evaluation => ({
+    id: ce.id,
+    projectId: ce.project_id || ce.projectId,
+    evaluatorId: ce.evaluator_id || ce.evaluatorId,
+    evaluateeId: ce.evaluatee_id || ce.evaluateeId,
+    answers: typeof ce.answers === 'string' ? JSON.parse(ce.answers) : ce.answers,
+    aiFeedback: ce.ai_feedback || ce.aiFeedback,
+    submittedAt: ce.submitted_at || ce.submittedAt,
+  });
+
+  const reloadTeacherData = async (email: string) => {
     let loadedStudents = mockStorage.getStudents(email);
     let loadedProjects = mockStorage.getProjects(email);
     let loadedEvaluations = mockStorage.getEvaluations(email);
     let loadedRosters = mockStorage.getRosters(email);
 
-    // If Supabase is configured, pull all active data from Cloud DB
     if (cloudConnected.supabase) {
       try {
-        const cloudRosters = await fetchAllRostersFromSupabase(email);
+        const cloudRosters = await fetchRosters();
         if (cloudRosters.length > 0) {
-          loadedRosters = cloudRosters.map((cr: any) => ({
-            id: cr.id,
-            name: cr.name,
-            createdAt: cr.createdAt,
-          }));
-        } else {
+          loadedRosters = cloudRosters.map((cr: any) => ({ id: cr.id, name: cr.name, createdAt: cr.createdAt }));
+        } else if (loadedRosters.length > 0) {
           // 클라우드에 rosters가 없고 로컬에는 있는 경우 백업 업로드
-          if (loadedRosters.length > 0) {
-            syncRostersToSupabase(loadedRosters, email);
-          }
+          syncRosters(loadedRosters);
         }
 
-        const cloudProjs = await fetchAllProjectsFromSupabase(email);
-        if (cloudProjs.length > 0) {
-          loadedProjects = cloudProjs.map((cp: any) => ({
-            id: cp.id,
-            title: cp.title,
-            description: cp.description,
-            questions: typeof cp.questions === 'string' ? JSON.parse(cp.questions) : cp.questions,
-            selfEvalEnabled: cp.selfEvalEnabled,
-            groups: typeof cp.groups === 'string' ? JSON.parse(cp.groups) : (cp.groups || []),
-            active: cp.active,
-            createdAt: cp.createdAt,
-            accessCode: cp.accessCode,
-            rosterId: cp.roster_id || 'roster-default', // Roster ID 매핑 추가
-          }));
-        }
+        const cloudProjs = await fetchProjects();
+        if (cloudProjs.length > 0) loadedProjects = cloudProjs.map(mapCloudProject);
 
-        const cloudStudents = await fetchAllStudentsFromSupabase(email);
-        if (cloudStudents.length > 0) {
-          loadedStudents = cloudStudents.map((cs: any) => ({
-            id: cs.id,
-            grade: cs.grade,
-            classNum: cs.classNum,
-            number: cs.number,
-            name: cs.name,
-            email: cs.email,
-            rosterId: cs.roster_id || 'roster-default', // Roster ID 매핑 추가
-          }));
-        }
+        const cloudStudents = await fetchStudents();
+        if (cloudStudents.length > 0) loadedStudents = cloudStudents.map(mapCloudStudent);
 
-        const cloudEvals = await fetchAllEvaluationsFromSupabase(email);
-        if (cloudEvals.length > 0) {
-          loadedEvaluations = cloudEvals.map((ce: any) => ({
-            id: ce.id,
-            projectId: ce.project_id || ce.projectId,
-            evaluatorId: ce.evaluator_id || ce.evaluatorId,
-            evaluateeId: ce.evaluatee_id || ce.evaluateeId,
-            answers: typeof ce.answers === 'string' ? JSON.parse(ce.answers) : ce.answers,
-            aiFeedback: ce.ai_feedback || ce.aiFeedback,
-            submittedAt: ce.submitted_at || ce.submittedAt,
-          }));
-        }
+        const cloudEvals = await fetchEvaluations();
+        if (cloudEvals.length > 0) loadedEvaluations = cloudEvals.map(mapCloudEvaluation);
       } catch (err) {
-        console.error('Supabase 데이터 로드 실패:', err);
-      }
-    }
-
-    // If student user logged in, verify project still exists
-    if (user?.role === 'student' && user.currentProjectId) {
-      const projectExists = loadedProjects.some(p => p.id === user.currentProjectId);
-      if (!projectExists) {
-        logout();
-        return;
+        console.error('클라우드 데이터 로드 실패:', err);
       }
     }
 
@@ -224,29 +202,71 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setEvaluations(loadedEvaluations);
     setRosters(loadedRosters);
 
-    // selectedRosterId가 목록 내에 유효한지 검증 후 설정
     if (loadedRosters.length > 0) {
-      setSelectedRosterId(prev => loadedRosters.some(r => r.id === prev) ? prev : loadedRosters[0].id);
+      setSelectedRosterId((prev) => (loadedRosters.some((r) => r.id === prev) ? prev : loadedRosters[0].id));
     } else {
       setSelectedRosterId('');
     }
+  };
+
+  const reloadStudentData = async (teacherEmail: string, currentProjectId?: string) => {
+    let loadedStudents = mockStorage.getStudents(teacherEmail);
+    let loadedProjects = mockStorage.getProjects(teacherEmail);
+    let loadedEvaluations = mockStorage.getEvaluations(teacherEmail);
+
+    if (cloudConnected.supabase) {
+      try {
+        const { project, students: cloudStudents } = await fetchStudentContext();
+        if (!project) {
+          logout();
+          return;
+        }
+        loadedProjects = [mapCloudProject(project)];
+        if (cloudStudents?.length > 0) loadedStudents = cloudStudents.map(mapCloudStudent);
+
+        const cloudEvals = await fetchEvaluations();
+        loadedEvaluations = cloudEvals.map(mapCloudEvaluation);
+      } catch (err) {
+        console.error('클라우드 데이터 로드 실패:', err);
+      }
+    }
+
+    if (currentProjectId && !loadedProjects.some((p) => p.id === currentProjectId)) {
+      logout();
+      return;
+    }
+
+    setStudents(loadedStudents);
+    setProjects(loadedProjects);
+    setEvaluations(loadedEvaluations);
+    setRosters([]);
+    setSelectedRosterId('');
+  };
+
+  const reloadData = async () => {
+    if (user?.role === 'teacher') {
+      const email = getTeacherEmail();
+      if (!email) return;
+      await reloadTeacherData(email);
+      return;
+    }
+
+    if (user?.role === 'student' && user.teacherEmail) {
+      await reloadStudentData(user.teacherEmail, user.currentProjectId);
+      return;
+    }
+
+    setStudents([]);
+    setProjects([]);
+    setEvaluations([]);
+    setRosters([]);
+    setSelectedRosterId('');
   };
 
   // Reload data dynamically whenever user session changes (Data Isolation)
   useEffect(() => {
     reloadData();
   }, [user, cloudConnected.supabase]);
-
-  const loginAsStudent = (email: string): boolean => {
-    const found = students.find((s) => s.email.trim().toLowerCase() === email.trim().toLowerCase());
-    if (found) {
-      const loggedUser: User = { role: 'student', studentInfo: found };
-      setUser(loggedUser);
-      localStorage.setItem('peer_eval_current_user', JSON.stringify(loggedUser));
-      return true;
-    }
-    return false;
-  };
 
   const loginAsStudentWithCode = async (
     accessCode: string,
@@ -255,112 +275,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     number: string,
     name: string
   ): Promise<{ success: boolean; error?: string }> => {
-    // 1. Search projects across all local storage keys to find the project matching the access code
-    let matchedProject: Project | undefined = undefined;
-    let foundTeacherEmail: string | undefined = undefined;
-
-    // Check currently loaded projects first
-    matchedProject = projects.find((p) => p.active && p.accessCode === accessCode.trim());
-    if (matchedProject) {
-      foundTeacherEmail = getTeacherEmail() || findTeacherEmailByProjectId(matchedProject.id);
-    } else {
-      // Search all isolated storage slots
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('peer_eval_projects_')) {
-          const email = key.replace('peer_eval_projects_', '');
-          const projectsData = localStorage.getItem(key);
-          if (projectsData) {
-            try {
-              const projs: Project[] = JSON.parse(projectsData);
-              const foundProj = projs.find((p) => p.active && p.accessCode === accessCode.trim());
-              if (foundProj) {
-                matchedProject = foundProj;
-                foundTeacherEmail = email;
-                break;
-              }
-            } catch (e) {
-              // Ignore
-            }
-          }
-        }
-      }
-    }
-
-    // 2. If not found locally but Supabase is configured, fetch from cloud DB!
-    if (!matchedProject && cloudConnected.supabase) {
-      const cloudProj = await fetchProjectByAccessCode(accessCode);
-      if (cloudProj) {
-        matchedProject = {
-          id: cloudProj.id,
-          title: cloudProj.title,
-          description: cloudProj.description,
-          questions: typeof cloudProj.questions === 'string' ? JSON.parse(cloudProj.questions) : cloudProj.questions,
-          selfEvalEnabled: cloudProj.selfEvalEnabled,
-          groups: typeof cloudProj.groups === 'string' ? JSON.parse(cloudProj.groups) : (cloudProj.groups || []),
-          active: cloudProj.active,
-          createdAt: cloudProj.createdAt,
-          accessCode: cloudProj.accessCode,
-          rosterId: cloudProj.roster_id || 'roster-default',
-        };
-        foundTeacherEmail = cloudProj.teacher_email;
-      }
-    }
-
-    if (!matchedProject) {
-      return { success: false, error: '유효하지 않거나 비활성화된 인증번호입니다.' };
-    }
-
-    // 3. Load the corresponding student list for that teacher's space to match the student details
-    const targetStudents = mockStorage.getStudents(foundTeacherEmail);
-    const targetRosterId = matchedProject.rosterId || 'roster-default';
-
-    let found = targetStudents.find(
-      (s) =>
-        (s.rosterId || 'roster-default') === targetRosterId &&
-        s.grade.trim() === grade.trim() &&
-        s.classNum.trim() === classNum.trim() &&
-        s.number.trim() === number.trim() &&
-        s.name.trim() === name.trim()
-    );
-
-    // 4. If not found in local student roster but Supabase is configured, fetch from cloud DB!
-    if (!found && cloudConnected.supabase) {
-      const cloudStudent = await fetchStudentByDetails(grade, classNum, number, name, targetRosterId);
-      if (cloudStudent && (cloudStudent.roster_id || 'roster-default') === targetRosterId) {
-        found = {
-          id: cloudStudent.id,
-          grade: cloudStudent.grade,
-          classNum: cloudStudent.classNum,
-          number: cloudStudent.number,
-          name: cloudStudent.name,
-          email: cloudStudent.email,
-          rosterId: cloudStudent.roster_id || 'roster-default'
-        };
-      }
-    }
-
-    if (found) {
-      const loggedUser: User = {
+    try {
+      const session = await apiLoginStudent(accessCode.trim(), grade.trim(), classNum.trim(), number.trim(), name.trim());
+      setSession(session);
+      setUser({
         role: 'student',
-        studentInfo: {
-          ...found,
-          rosterId: found.rosterId || 'roster-default'
-        },
-        currentProjectId: matchedProject.id,
-        teacherEmail: foundTeacherEmail,
-      };
-      setUser(loggedUser);
-      localStorage.setItem('peer_eval_current_user', JSON.stringify(loggedUser));
+        studentInfo: session.studentInfo,
+        currentProjectId: session.projectId,
+        teacherEmail: session.teacherEmail,
+      });
       return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || '로그인에 실패했습니다.' };
     }
-
-    return { success: false, error: '이 프로젝트의 명단 카테고리에 등록된 학생 정보와 일치하지 않습니다.' };
   };
 
-  const loginAsTeacher = (email: string, name: string) => {
+  const loginAsTeacher = async (googleIdToken: string): Promise<{ success: boolean; error?: string }> => {
+    let session;
+    try {
+      session = await apiLoginTeacher(googleIdToken);
+    } catch (err: any) {
+      return { success: false, error: err.message || '구글 로그인에 실패했습니다.' };
+    }
+
+    const { email, name } = session;
     const cleanEmail = email.trim().toLowerCase();
-    
+
     // Automatic Migration: Copy pre-login storage data to teacher-specific keys if they are empty
     const userProjectKey = `peer_eval_projects_${cleanEmail}`;
     const userStudentKey = `peer_eval_students_${cleanEmail}`;
@@ -428,9 +368,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
+    setSession(session);
     const loggedUser: User = { role: 'teacher', teacherInfo: { email, name } };
     setUser(loggedUser);
-    localStorage.setItem('peer_eval_current_user', JSON.stringify(loggedUser));
+    return { success: true };
   };
 
   const logout = () => {
@@ -440,7 +381,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setEvaluations([]);
     setRosters([]);
     setSelectedRosterId('');
-    localStorage.removeItem('peer_eval_current_user');
+    clearSession();
   };
 
   const uploadStudents = (rosterStudents: Student[]) => {
@@ -462,7 +403,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     // Cloud Sync if configured
     if (cloudConnected.supabase && email) {
-      syncStudentsToSupabase(allStudents, email);
+      syncStudents(allStudents);
     }
   };
 
@@ -493,7 +434,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Cloud Sync if configured
     if (cloudConnected.supabase && email) {
-      syncProjectToSupabase(newProject, email);
+      syncProject(newProject);
     }
   };
 
@@ -527,7 +468,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (cloudConnected.supabase && email) {
       const targetProj = updated.find((p) => p.id === projectId);
       if (targetProj) {
-        syncProjectToSupabase(targetProj, email);
+        syncProject(targetProj);
       }
     }
   };
@@ -542,7 +483,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (cloudConnected.supabase && email) {
       const targetProj = updated.find(p => p.id === projectId);
       if (targetProj) {
-        syncProjectToSupabase(targetProj, email);
+        syncProject(targetProj);
       }
     }
   };
@@ -561,7 +502,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSelectedRosterId(newRoster.id);
 
     if (cloudConnected.supabase && email) {
-      syncRostersToSupabase(updated, email);
+      syncRosters(updated);
     }
   };
 
@@ -587,8 +528,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       if (cloudConnected.supabase && email) {
-        syncRostersToSupabase(updatedRosters, email);
-        syncStudentsToSupabase(remainingStudents, email);
+        syncRosters(updatedRosters);
+        syncStudents(remainingStudents);
       }
     }
   };
@@ -601,7 +542,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Cloud Sync: Delete from Supabase DB if configured
     if (cloudConnected.supabase) {
-      deleteProjectFromSupabase(projectId);
+      deleteProjectApi(projectId);
     }
   };
 
@@ -615,7 +556,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (cloudConnected.supabase && email) {
       const targetProj = updated.find((p) => p.id === projectId);
       if (targetProj) {
-        syncProjectToSupabase(targetProj, email);
+        syncProject(targetProj);
       }
     }
   };
@@ -626,11 +567,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     evaluateeId: string,
     answers: { [questionId: string]: string | number }
   ) => {
-    // Determine the target teacher space
-    let targetTeacherEmail = getTeacherEmail();
-    if (!targetTeacherEmail) {
-      targetTeacherEmail = findTeacherEmailByProjectId(projectId);
-    }
+    // Determine the target teacher space (for local mockStorage namespacing only —
+    // the server derives the authoritative scope from the caller's session token)
+    const targetTeacherEmail = getTeacherEmail() || user?.teacherEmail;
 
     const evaluator = students.find(s => s.id === evaluatorId);
     const evaluatee = students.find(s => s.id === evaluateeId);
@@ -652,21 +591,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       answers,
       aiFeedback: aiText
     }, targetTeacherEmail);
-    
+
     setEvaluations(mockStorage.getEvaluations(targetTeacherEmail));
 
-    // 3. Sync to Supabase DB if configured (중복 방지를 위해 삭제 후 삽입)
+    // 3. Sync to Supabase DB if configured (server does delete-then-insert internally)
     if (cloudConnected.supabase) {
-      await deleteEvaluationFromSupabase(projectId, evaluatorId, evaluateeId);
-      await submitEvaluationToSupabase({
-        project_id: projectId,
-        evaluator_id: evaluatorId,
-        evaluatee_id: evaluateeId,
-        answers: JSON.stringify(answers),
-        ai_feedback: aiText,
-        submitted_at: new Date().toISOString(),
-        teacher_email: targetTeacherEmail
-      });
+      await submitEvaluationApi({ projectId, evaluatorId, evaluateeId, answers, aiFeedback: aiText });
     }
 
     // 4. Sync to Google Sheets if configured
@@ -682,10 +612,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const generateAndSaveAITotalFeedback = async (projectId: string, evaluateeId: string) => {
-    let targetTeacherEmail = getTeacherEmail();
-    if (!targetTeacherEmail) {
-      targetTeacherEmail = findTeacherEmailByProjectId(projectId);
-    }
+    const targetTeacherEmail = getTeacherEmail() || user?.teacherEmail;
 
     const projectObj = projects.find(p => p.id === projectId);
     const evaluatee = students.find(s => s.id === evaluateeId);
@@ -698,13 +625,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     // AI 종합 총평 생성 (자기 평가와 동료 평가를 구분하여 감안)
-    const aiTotalText = await generateComprehensiveAIFeedback(
-      projectObj.title,
-      projectObj.questions,
-      evaluatee.name,
-      targetEvals,
-      students
-    );
+    const aiTotalText = await fetchGeminiFeedback({
+      projectTitle: projectObj.title,
+      questions: projectObj.questions,
+      evaluateeName: evaluatee.name,
+      evaluations: targetEvals,
+      students,
+    });
 
     // AI_SUMMARY 라는 가상의 평가자로 결과를 evaluations에 저장
     mockStorage.saveEvaluation({
@@ -717,18 +644,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setEvaluations(mockStorage.getEvaluations(targetTeacherEmail));
 
-    // Supabase DB 동기화
+    // Supabase DB 동기화 (server does delete-then-insert internally)
     if (cloudConnected.supabase) {
-      // 중복 방지를 위해 삭제 먼저 수행
-      await deleteEvaluationFromSupabase(projectId, 'AI_SUMMARY', evaluateeId);
-      await submitEvaluationToSupabase({
-        project_id: projectId,
-        evaluator_id: 'AI_SUMMARY',
-        evaluatee_id: evaluateeId,
-        answers: JSON.stringify({}),
-        ai_feedback: aiTotalText,
-        submitted_at: new Date().toISOString(),
-        teacher_email: targetTeacherEmail
+      await submitEvaluationApi({
+        projectId,
+        evaluatorId: 'AI_SUMMARY',
+        evaluateeId,
+        answers: {},
+        aiFeedback: aiTotalText,
       });
     }
 
@@ -752,7 +675,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Cloud Sync: Wipe this teacher's cloud DB data only if configured
     if (cloudConnected.supabase && email) {
-      clearAllCloudData(email);
+      resetAllApi();
     }
 
     logout();
@@ -771,7 +694,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createRoster,
         deleteRoster,
         cloudConnected,
-        loginAsStudent,
         loginAsStudentWithCode,
         loginAsTeacher,
         logout,
